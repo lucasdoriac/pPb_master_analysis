@@ -5,19 +5,19 @@ These plots were intended as quality assurance checks, validating reconstruction
 
 ## Contents
 - To be updated. Example:
-- `macro_control_plots.C` — ROOT macro to generate basic histograms.
-- `plot_config.json` — configuration file for histogram styling.
-- `results/` — directory where output plots are stored (not tracked in Git).
+- `macro_control_plots.C` -> ROOT macro to generate basic histograms.
+- `results/` -> local directory where output plots are stored.
 
 ## Usage
-To run the macro inside ROOT:
+To run the macro from bash:
 ```bash
-root -l -q macro_control_plots.C
+root -l -q control_plots.C
 ```
 
 ### Notes
 - Data input paths may need to be updated depending on the environment.
 
 ### To-do
+- Update main code.
 - Add efficiency plots.
 - Automate legend and axis labeling.
