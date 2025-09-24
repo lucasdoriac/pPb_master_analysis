@@ -20,6 +20,7 @@ root -l -q control_plots.C
 
 ### To-do
 - Update `control_plots.C` code.
-- Update `Pb_vs_p.C` code.
+- Update `plot_HF_depositedEnergies_sameEcoll.C` code.
 - Add updated presentation to repo.
 - At the very end, when the remote repo will be completed, we need to update the path/to/datafile in all macros, since the datafile is going to be stored in a directory inside the pPb_master_analysis/ folder.
+- I have decided it's not worth it to add the creation of ```results/``` folder when saving the output files. This will be done when the project is finished.

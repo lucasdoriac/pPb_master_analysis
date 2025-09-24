@@ -5,7 +5,8 @@
 
 // To-do's
 // - Error.log
-// - Place loop when calling get_TH1D so the main() function plots everything on one call.
+// - Check Bins functions.
+// - Add struct solution to current messy string passing.
 
 // --- Headers
 #include <iostream>
@@ -19,6 +20,12 @@
 #include <TLegend.h>
 #include <TLatex.h>
 
+// --- Global settings
+bool set_Normalization = false;
+bool set_LogScale = false;
+const std::string output_extension = ".png";
+const std::string base_output_path = "../../../../mnt/c/Users/lucas/Documents/";
+const std::string base_output_name = "HF_depositedEnergies_sameEcoll";
 
 // --- Path to data files
 const std::string data_File_5TeV = "../../pPb_meanpT_vs_Nch_histos_5TeV_MBonly_PUGPlus_HFSumEtEta4_TrkEta2p4_v12-09-01-25_tot.root";
@@ -30,7 +37,7 @@ namespace fs = std::filesystem;
 // --- Function prototypes
 TCanvas* makeCanvas(const char *name = "c", const char *title = "Canvas", int width = 800, int height = 600);
 TH1D* get_th1d(const std::string& filename, const std::string& histogram);
-void plot_th1(const std::string& coll_energy, TH1D *h1, TH1D *h2, const std::string& extension = ".png");
+void plot_th1(const std::string& coll_energy, TH1D *h1, TH1D *h2);
 void refine_hist(TH1D *h1, Color_t color_h1, TH1D *h2, Color_t color_h2);
 int GetLastNonZeroBin(const TH1D *hist);
 double GetLastNonZeroX(const TH1D *hist);
@@ -79,7 +86,7 @@ TCanvas* makeCanvas(const char* name, const char *title, int width, int height)
     c->SetFrameLineWidth(2);  // default is 1, increase for thicker axes box
 
     // Log scale option
-    c->SetLogy();
+    if(set_LogScale) c->SetLogy();
 
     return c;
 }
@@ -110,29 +117,29 @@ TH1D* get_th1d(const std::string& filename, const std::string& histogram){
     return hist;
 }
 
-void plot_th1(const std::string& coll_energy, TH1D *h1, TH1D *h2, const std::string& extension){
+void plot_th1(const std::string& coll_energy, TH1D *h1, TH1D *h2){
 
     // Plots TH1D histograms. Pb vs p going side HF calorimeter measured energies.
     TCanvas* c = makeCanvas();
 
     // Prepares histograms for plot.
-    refine_hist(h1, kCyan, h2, kGreen);
+    refine_hist(h1, kGreen, h2, kCyan);
 
     // Currently plotting as filling. To plot as markers use the commented code.
     h1->Draw("HIST");
     h2->Draw("HIST SAME");
 
     // Create TLegend.
-    TLegend* leg = new TLegend(0.70, 0.72, 0.90, 0.82); // x1, y1, x2, y2.
+    TLegend* leg = new TLegend(0.68, 0.70, 0.88, 0.85); // x1, y1, x2, y2.
 
     // Add entries
-    leg->AddEntry(h1, "Pb-going HF", "f");
-    leg->AddEntry(h2, "p-going HF", "f");
+    leg->AddEntry(h1, "Pb HF", "f");
+    leg->AddEntry(h2, "p HF", "f");
 
     // Legend box settings.
+    leg->SetHeader("Data"); // There's a "C" flag that centers this.
     leg->SetBorderSize(0);
-    leg->SetFillStyle(0);
-    leg->SetTextSize(0.038);
+    leg->SetTextSize(0.04);
     leg->SetTextFont(42);
     leg->SetMargin(0.2);
     leg->SetEntrySeparation(0.04);
@@ -158,7 +165,7 @@ void plot_th1(const std::string& coll_energy, TH1D *h1, TH1D *h2, const std::str
     latex2.SetNDC();
     latex2.SetTextSize(0.04);
     latex2.SetTextFont(42);
-    latex2.SetTextAlign(31);  // right-aligned    
+    latex2.SetTextAlign(31);  // right-aligned
     latex2.DrawLatex(0.94, y, lumiText);
 
 
@@ -166,20 +173,14 @@ void plot_th1(const std::string& coll_energy, TH1D *h1, TH1D *h2, const std::str
     c->Modified();
     c->Update();
 
-    // Out directory and outfile. Plot name.
-    //std::string out_dir = "results/";
-    // Create folder if it doesn't exist
-    //    if (!fs::exists(out_dir)) {
-    //        fs::create_directory(out_dir);
-    //    }
-    TString energy_string;
-    if (coll_energy == data_File_5TeV) energy_string = "5TeV";
-    else if (coll_energy == data_File_8TeV) energy_string = "8TeV";
-    TString base_path = "../../../../mnt/c/Users/lucas/Documents/";
-    TString base_name = "HF_depositedEnergies_sameEcoll_";
-    TString full_path = base_path + base_name + energy_string + TString(extension);
-    
-    c->SaveAs(full_path);
+    // Output configurations. This will be better once we create the structs.
+    std::string energy_sufix;
+    if (coll_energy == data_File_5TeV) energy_sufix = "_5TeV";
+    else if (coll_energy == data_File_8TeV) energy_sufix = "_8TeV";
+
+    std::string full_path = base_output_path + out_dir + base_output_name + energy_sufix + output_extension;
+
+    c->SaveAs(TString(full_path));
     delete c;
 }
 
@@ -189,7 +190,8 @@ void refine_hist(TH1D* h1, Color_t color_h1, TH1D *h2, Color_t color_h2){
     // General settings - Only needed for h1.
     h1->SetTitle("");
     h1->GetXaxis()->SetTitle("E_{T,sum}^{HF} [GeV]");
-    h1->GetYaxis()->SetTitle("Density of events");
+    if(set_Normalization) h1->GetYaxis()->SetTitle("Density of events");
+    else h1->GetYaxis()->SetTitle("Number of Events (#times 10^{6})");
 
     h1->GetXaxis()->CenterTitle(true);
     h1->GetYaxis()->CenterTitle(true);
@@ -210,35 +212,37 @@ void refine_hist(TH1D* h1, Color_t color_h1, TH1D *h2, Color_t color_h2){
     h1->GetYaxis()->SetLabelSize(0.036);
 
 
-    // Pb-going side histogram SETTINGS (Currently plotting with filling style. For marker style change the commented section.)
+    // Pb-going side histogram SETTINGS (Currently plotting with filling style.)
     h1->SetStats(0);
     h1->SetLineWidth(1);
     h1->SetLineStyle(1);
-    //h1->SetFillColor(color_h1);
     h1->SetFillColorAlpha(color_h1 + 1, 0.5);
     h1->SetLineColor(color_h1 + 2);
     h1->SetFillStyle(1001);
-    //h1->SetMarkerStyle(20);
-    //h1->SetMarkerColor(color_h1 + 1);
-    //h1->SetMarkerSize(1.0);
 
-    double Int = h1->Integral();
-    if (Int > 0) h1->Scale(1.0 / Int);
-    
     // p-going side histogram SETTINGS.
     h2->SetStats(0);
     h2->SetLineWidth(1);
     h2->SetLineStyle(1);
-    //h2->SetFillColor(color_h2);
     h2->SetFillColorAlpha(color_h2 + 1, 0.5);
     h2->SetLineColor(color_h2 + 2);
     h2->SetFillStyle(1001);
-    //h2->SetMarkerStyle(20);
-    //h2->SetMarkerColor(color_h2 + 1);
-    //h2->SetMarkerSize(1.0);
 
-    Int = h2->Integral();
-    if (Int > 0) h2->Scale(1.0 / Int);
+    // Normalization settings.
+    double Int;
+    if(set_Normalization){
+        Int = h1->Integral();
+        if (Int > 0) h1->Scale(1.0 / Int);
+        Int = h2->Integral();
+        if (Int > 0) h2->Scale(1.0 / Int);
+    }
+
+    // Settings for better plot of raw counts. No normalization. 
+    if(!set_Normalization && !set_LogScale){
+        h1->GetYaxis()->SetNoExponent(kTRUE);
+        h1->Scale(1.0 / 1e+6);
+        h2->Scale(1.0 / 1e+6);
+    }
 
     // Adjusting X-axis range.
     int lastBin = GetLastNonZeroBin(h1);
