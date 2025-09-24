@@ -25,7 +25,7 @@ bool set_Normalization = false;
 bool set_LogScale = false;
 const std::string output_extension = ".png";
 const std::string base_output_path = "../../../../mnt/c/Users/lucas/Documents/";
-const std::string base_output_name = "HF_depositedEnergies_sameEcoll";
+const std::string base_output_name = "hfSumEt_sNN";
 
 // --- Path to data files
 const std::string data_File_5TeV = "../../pPb_meanpT_vs_Nch_histos_5TeV_MBonly_PUGPlus_HFSumEtEta4_TrkEta2p4_v12-09-01-25_tot.root";
@@ -44,7 +44,7 @@ double GetLastNonZeroX(const TH1D *hist);
 
 
 // --- main () ---
-void plot_HF_depositedEnergies_sameEcoll(){
+void plot_hfSumEt_sNN(){
 
     gROOT->SetBatch(kTRUE);
     TH1D *h1, *h2;
