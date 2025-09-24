@@ -1,6 +1,6 @@
 // Prints the content of both datafiles.
 
-// -- Headers
+// --- Headers
 #include <iostream> // std::cout, std::cerr
 #include <fstream> // std::ofstream
 #include <TFile.h> // TFile

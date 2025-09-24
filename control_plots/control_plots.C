@@ -51,14 +51,14 @@ void drawCMSHeader(const char* extraText = "#it{Work in Progress}", const char* 
 
 
 // --- main() ---
-void control_plots_v3(const char* target_histogram, bool log_y = false, bool set_x_range = false, int sparse_axis = 0){
+void control_plots(const char* target_histogram, bool log_y = false, bool set_x_range = false, int sparse_axis = 0){
 
 	gROOT->SetBatch(kTRUE);
 
 	bool found = false; // Boolean to check if target_histogram was found.
 
-	TFile *f1 = TFile::Open("../pPb_meanpT_vs_Nch_histos_8TeV_MBonly_PUGPlus_HFSumEtEta4_TrkEta2p4_v12-09-01-25_tot.root", "READ");
-	TFile *f2 = TFile::Open("../pPb_meanpT_vs_Nch_histos_5TeV_MBonly_PUGPlus_HFSumEtEta4_TrkEta2p4_v12-09-01-25_tot.root", "READ");
+	TFile *f1 = TFile::Open("../../pPb_meanpT_vs_Nch_histos_8TeV_MBonly_PUGPlus_HFSumEtEta4_TrkEta2p4_v12-09-01-25_tot.root", "READ");
+	TFile *f2 = TFile::Open("../../pPb_meanpT_vs_Nch_histos_5TeV_MBonly_PUGPlus_HFSumEtEta4_TrkEta2p4_v12-09-01-25_tot.root", "READ");
 	if (!f1 || f1->IsZombie() || !f2 || f2->IsZombie()) {
     	    std::cerr << "Error while opening files. \n" << std::endl;
     	    exit(1);
@@ -129,7 +129,7 @@ void control_plots_v3(const char* target_histogram, bool log_y = false, bool set
 
 					c->Modified();
 					c->Update();
-					TString outname = "../../../mnt/c/Users/lucas/Documents/" + hname + ".png";
+					TString outname = "../../../../mnt/c/Users/lucas/Documents/" + hname + ".png";
 					c->SaveAs(outname);
 
 					std::cout << "Integral h1 = " << h1->Integral() << std::endl;
@@ -166,7 +166,7 @@ void control_plots_v3(const char* target_histogram, bool log_y = false, bool set
 					
 					c->Modified();
 					c->Update();
-					TString outname = "../../../mnt/c/Users/lucas/Documents/" + hname + "_axis_" + sparse_axis + ".png";
+					TString outname = "../../../../mnt/c/Users/lucas/Documents/" + hname + "_axis_" + sparse_axis + ".png";
 					c->SaveAs(outname);
 
 					std::cout << "Integral h1 = " << proj1->Integral() << std::endl;
