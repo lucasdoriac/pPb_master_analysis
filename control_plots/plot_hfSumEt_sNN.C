@@ -4,11 +4,6 @@
 //
 // --- lucasdoriadecarvalho@gmail.com
 
-// To-do's
-// - Check Bins functions.
-// - Add struct solution to current messy string passing.
-
-
 // --- Headers
 #include <iostream>
 #include <fstream>
@@ -27,9 +22,24 @@ bool set_LogScale = false;
 const std::string output_extension = ".pdf";
 const std::string base_output_path = "../../../../mnt/c/Users/lucas/Documents/";
 
-// --- Path to data files
-const std::string data_File_5TeV = "../../pPb_meanpT_vs_Nch_histos_5TeV_MBonly_PUGPlus_HFSumEtEta4_TrkEta2p4_v12-09-01-25_tot.root";
-const std::string data_File_8TeV = "../../pPb_meanpT_vs_Nch_histos_8TeV_MBonly_PUGPlus_HFSumEtEta4_TrkEta2p4_v12-09-01-25_tot.root";
+// --- Structs
+struct DataFile {
+    std::string path;
+    std::string label;
+};
+
+// --- struct to 5TeV dataset
+const DataFile data_File_5TeV = {
+    "../../pPb_meanpT_vs_Nch_histos_5TeV_MBonly_PUGPlus_HFSumEtEta4_TrkEta2p4_v12-09-01-25_tot.root",
+    "5TeV"
+};
+
+// --- struct to 8TeV dataset
+const DataFile data_File_8TeV = {
+    "../../pPb_meanpT_vs_Nch_histos_8TeV_MBonly_PUGPlus_HFSumEtEta4_TrkEta2p4_v12-09-01-25_tot.root",
+    "8TeV"
+};
+
 
 // --- Function prototypes
 TCanvas* makeCanvas(const char *name = "c", const char *title = "Canvas", int width = 800, int height = 600);
@@ -40,6 +50,9 @@ int GetLastNonZeroBin(const TH1D *hist);
 double GetLastNonZeroX(const TH1D *hist);
 void logError(const std::string& message);
 
+// Currently doing:
+// - Check Bins functions.
+// 24-09-16h48
 
 // --- main () ---
 void plot_hfSumEt_sNN(){
@@ -48,15 +61,17 @@ void plot_hfSumEt_sNN(){
     TH1D *h1, *h2;
 
     // Gets histograms from "/QA_histograms/"
-    h1 = get_th1d(data_File_5TeV, "hfSumEtPb"); //h1-> Pb-going side.
-    h2 = get_th1d(data_File_5TeV, "hfSumEtp"); //h2-> p-going side.
+    h1 = get_th1d(data_File_5TeV.path, "hfSumEtPb"); //h1-> Pb-going side.
+    h2 = get_th1d(data_File_5TeV.path, "hfSumEtp"); //h2-> p-going side.
     // Plots histograms to files.
-    plot_th1(data_File_5TeV, h1, h2);
+    if(h1 && h2) plot_th1(data_File_5TeV.label, h1, h2);
+    else logError("Skipping 5TeV plot due to missing histogram(s).");
 
-    h1 = get_th1d(data_File_8TeV, "hfSumEtPb");
-    h2 = get_th1d(data_File_8TeV, "hfSumEtp");
+    h1 = get_th1d(data_File_8TeV.path, "hfSumEtPb");
+    h2 = get_th1d(data_File_8TeV.path, "hfSumEtp");
     // Plots histograms to files.
-    plot_th1(data_File_8TeV, h1, h2);
+    if(h1 && h2) plot_th1(data_File_8TeV.label, h1, h2);
+    else logError("Skipping 8TeV plot due to missing histogram(s).");
 
 }
 
@@ -95,20 +110,20 @@ TH1D* get_th1d(const std::string& filename, const std::string& histogram){
     TFile *file = TFile::Open(filename.c_str(), "READ");
     if (!file || file->IsZombie()){
         logError("Error: from get_th1d: Could not open file " + filename);
-        exit(1);
+        return nullptr;
     }
 
     TDirectory *dir = (TDirectory*)file->Get("QA_histograms");
     if (!dir) {
         logError("Error: from get_th1d: Could not load directory 'QA_histograms'.");
         file->Close();
-        exit(1);
+        return nullptr;
     }
     
     TH1D *hist = (TH1D*)dir->Get(histogram.c_str());
     if (!hist){
         logError("Error: from get_th1d: Could not load TH1 histogram hist.");
-        exit(1);
+        return nullptr;
     }
     hist->SetDirectory(0);
     file->Close();
@@ -158,8 +173,8 @@ void plot_th1(const std::string& coll_energy, TH1D *h1, TH1D *h2){
 
     // Draw luminosity/energy info on the right. This changes depending on what you want.
     TString lumiText;
-    if(coll_energy == data_File_5TeV) lumiText = "pPb (0.509 nb^{-1})  5.02 TeV";
-    else if(coll_energy == data_File_8TeV) lumiText = "pPb (186.0 nb^{-1})  8.16 TeV";
+    if(coll_energy == data_File_5TeV.label) lumiText = "pPb (0.509 nb^{-1})  5.02 TeV";
+    else if(coll_energy == data_File_8TeV.label) lumiText = "pPb (186.0 nb^{-1})  8.16 TeV";
     TLatex latex2;
     latex2.SetNDC();
     latex2.SetTextSize(0.04);
@@ -172,13 +187,9 @@ void plot_th1(const std::string& coll_energy, TH1D *h1, TH1D *h2){
     c->Modified();
     c->Update();
 
-    // Output configurations. This will be better once we create the structs.
-    std::string energy_sufix;
-    if (coll_energy == data_File_5TeV) energy_sufix = "_5TeV";
-    else if (coll_energy == data_File_8TeV) energy_sufix = "_8TeV";
-
-    std::string base_output_name = "hfSumEt_sNN";
-    std::string full_path = base_output_path + base_output_name + energy_sufix + output_extension;
+    // Output settings.
+    std::string output_name = "hfSumEt_sNN_" + coll_energy;
+    std::string full_path = base_output_path + output_name + output_extension;
 
     c->SaveAs(TString(full_path));
     delete c;
@@ -188,7 +199,7 @@ void refine_hist(TH1D* h1, Color_t color_h1, TH1D *h2, Color_t color_h2){
     
     if(!h1 || !h2){
         logError("From refine_hist: histograms were not passed correctly as variables.");
-        exit(1);
+        return;
     }
     // General settings - Only needed for h1.
     h1->SetTitle("");
