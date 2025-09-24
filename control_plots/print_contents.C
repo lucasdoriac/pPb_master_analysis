@@ -90,7 +90,7 @@ void logError(const std::string& message){
         err_log << message << std::endl;
     }
     else {
-        std::cerr << "From logError: Could not open 'error.log' for writing." << std::endl;
+        std::cerr << "From logError: Could not open 'print_contents.log' for writing." << std::endl;
     }
     
 }

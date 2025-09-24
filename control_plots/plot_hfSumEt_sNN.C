@@ -1,12 +1,11 @@
-// Plots TH1D 'hfSumEtPb' and 'hfSumEtp' histograms on the same TCanvas for each respective collision energy.
-// 'hfSumEtPb' contains the TH1D histogram of the sum of deposited event energy on the HF Pb-going side.
-// 'hfSumEtp' contains the TH1D histogram of the sum of deposited event energy on the HF p-going side.
-// Plots energy deposited on the p-side vs Pb-side HF calorimeter.
+// Plots 'hfSumEtPb' and 'hfSumEtp' TH1D histograms on the same TCanvas for each respective collision energy dataset.
+// 'hfSumEtPb' contains the TH1D histogram of the sum of the transverse component of the total collision energy deposited on the Pb-going HF detector.
+// 'hfSumEtp' same observable but for the p-going HF detector.
 
 // To-do's
-// - Error.log
 // - Check Bins functions.
 // - Add struct solution to current messy string passing.
+
 
 // --- Headers
 #include <iostream>
@@ -20,19 +19,15 @@
 #include <TLegend.h>
 #include <TLatex.h>
 
-// --- Global settings
+// --- Global settings (variables)
 bool set_Normalization = false;
 bool set_LogScale = false;
 const std::string output_extension = ".png";
 const std::string base_output_path = "../../../../mnt/c/Users/lucas/Documents/";
-const std::string base_output_name = "hfSumEt_sNN";
 
 // --- Path to data files
 const std::string data_File_5TeV = "../../pPb_meanpT_vs_Nch_histos_5TeV_MBonly_PUGPlus_HFSumEtEta4_TrkEta2p4_v12-09-01-25_tot.root";
 const std::string data_File_8TeV = "../../pPb_meanpT_vs_Nch_histos_8TeV_MBonly_PUGPlus_HFSumEtEta4_TrkEta2p4_v12-09-01-25_tot.root";
-
-// --- namespace // Later to be called global definitions. Parameters we often want to change and leave it custom.
-namespace fs = std::filesystem;
 
 // --- Function prototypes
 TCanvas* makeCanvas(const char *name = "c", const char *title = "Canvas", int width = 800, int height = 600);
@@ -41,6 +36,7 @@ void plot_th1(const std::string& coll_energy, TH1D *h1, TH1D *h2);
 void refine_hist(TH1D *h1, Color_t color_h1, TH1D *h2, Color_t color_h2);
 int GetLastNonZeroBin(const TH1D *hist);
 double GetLastNonZeroX(const TH1D *hist);
+void logError(const std::string& message);
 
 
 // --- main () ---
@@ -95,24 +91,25 @@ TH1D* get_th1d(const std::string& filename, const std::string& histogram){
 
     // Gets TH1D histogram located on "QA_histograms" from filename.
     TFile *file = TFile::Open(filename.c_str(), "READ");
-    if (!file || file->IsZombie()) {
-        std::cerr << "Error: from get_TH1D function: Could not open file " << filename << std::endl;
+    if (!file || file->IsZombie()){
+        logError("Error: from get_th1d: Could not open file " + filename);
         exit(1);
     }
 
     TDirectory *dir = (TDirectory*)file->Get("QA_histograms");
     if (!dir) {
-        std::cerr << "Error: from get_TH1D function: Directory " << histogram << " not found!" << std::endl;
+        logError("Error: from get_th1d: Could not load directory 'QA_histograms'.");
         file->Close();
         exit(1);
     }
     
     TH1D *hist = (TH1D*)dir->Get(histogram.c_str());
     if (!hist){
-        std::cerr << "Error: from get_TH1D function: Error while creating TH1 histogram. " << std::endl;
+        logError("Error: from get_th1d: Could not load TH1 histogram hist.");
         exit(1);
     }
     hist->SetDirectory(0);
+    file->Close();
 
     return hist;
 }
@@ -178,15 +175,19 @@ void plot_th1(const std::string& coll_energy, TH1D *h1, TH1D *h2){
     if (coll_energy == data_File_5TeV) energy_sufix = "_5TeV";
     else if (coll_energy == data_File_8TeV) energy_sufix = "_8TeV";
 
-    std::string full_path = base_output_path + out_dir + base_output_name + energy_sufix + output_extension;
+    std::string base_output_name = "hfSumEt_sNN";
+    std::string full_path = base_output_path + base_output_name + energy_sufix + output_extension;
 
     c->SaveAs(TString(full_path));
     delete c;
 }
 
 void refine_hist(TH1D* h1, Color_t color_h1, TH1D *h2, Color_t color_h2){
-    if(!h1 || !h2) exit(1); // Avoid null pointer crash. Treat error when add error.log function.
-
+    
+    if(!h1 || !h2){
+        logError("From refine_hist: histograms were not passed correctly as variables.");
+        exit(1);
+    }
     // General settings - Only needed for h1.
     h1->SetTitle("");
     h1->GetXaxis()->SetTitle("E_{T,sum}^{HF} [GeV]");
@@ -214,7 +215,7 @@ void refine_hist(TH1D* h1, Color_t color_h1, TH1D *h2, Color_t color_h2){
 
     // Pb-going side histogram SETTINGS (Currently plotting with filling style.)
     h1->SetStats(0);
-    h1->SetLineWidth(1);
+    h1->SetLineWidth(2);
     h1->SetLineStyle(1);
     h1->SetFillColorAlpha(color_h1 + 1, 0.5);
     h1->SetLineColor(color_h1 + 2);
@@ -222,7 +223,7 @@ void refine_hist(TH1D* h1, Color_t color_h1, TH1D *h2, Color_t color_h2){
 
     // p-going side histogram SETTINGS.
     h2->SetStats(0);
-    h2->SetLineWidth(1);
+    h2->SetLineWidth(2);
     h2->SetLineStyle(1);
     h2->SetFillColorAlpha(color_h2 + 1, 0.5);
     h2->SetLineColor(color_h2 + 2);
@@ -265,4 +266,18 @@ double GetLastNonZeroX(const TH1D *hist) {
     int bin = GetLastNonZeroBin(hist);
     if (bin < 0) return hist->GetXaxis()->GetXmin(); // fallback
     return hist->GetXaxis()->GetBinUpEdge(bin); // upper edge of that bin
+}
+
+
+void logError(const std::string& message){
+    // Set off stream to error.log file.
+    std::ofstream err_log("plot_hfSumEt_sNN.log", std::ios::app);
+
+    if (err_log.is_open()){
+        err_log << message << std::endl;
+    }
+    else {
+        std::cerr << "From logError: Could not open 'plot_hfSumEt_sNN.log' for writing." << std::endl;
+    }
+    
 }
