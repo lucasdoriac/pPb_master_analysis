@@ -5,7 +5,8 @@ These plots were intended as quality assurance checks, validating reconstruction
 
 ## Contents
 - To be updated. Example:
-- `macro_control_plots.C` -> ROOT macro to generate basic histograms.
+- `control_plots.C` -> ROOT macro to generate basic histograms.
+- `print_contents.C` -> Print contents and classes of all files inside `.root` datafile.
 - `results/` -> local directory where output plots are stored.
 
 ## Usage
@@ -15,9 +16,9 @@ root -l -q control_plots.C
 ```
 
 ### Notes
-- Data input paths may need to be updated depending on the environment.
+- Path to `.root` datafiles may need to be updated depending on the environment.
 
 ### To-do
-- Update main code.
-- Add efficiency plots.
-- Automate legend and axis labeling.
+- Update `control_plots.C` code.
+- Update `Pb_vs_p.C` code.
+- Add updated presentation to repo.
