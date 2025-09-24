@@ -1,17 +1,20 @@
 // Prints the content of both datafiles.
 
 // -- Headers
-#include <iostream>
-#include <fstream>
-#include <TFile.h>
-#include <TClass.h>
-#include <TKey.h>
+#include <iostream> // std::cout, std::cerr
+#include <fstream> // std::ofstream
+#include <TFile.h> // TFile
+#include <TDirectory.h> // TDirectory
+#include <TClass.h> // TObject::InheritsFrom()
+#include <TKey.h> // TKey
+#include <string> // std::string
+
 
 // --- Path to data files
 const std::string data_File_5TeV = "../../pPb_meanpT_vs_Nch_histos_5TeV_MBonly_PUGPlus_HFSumEtEta4_TrkEta2p4_v12-09-01-25_tot.root";
 const std::string data_File_8TeV = "../../pPb_meanpT_vs_Nch_histos_8TeV_MBonly_PUGPlus_HFSumEtEta4_TrkEta2p4_v12-09-01-25_tot.root";
 
-// --- Function prototype
+// --- Function prototypes
 void print_content(const std::string& datafile);
 void logError(const std::string& message);
 
@@ -32,7 +35,7 @@ void print_content(const std::string& datafile) {
     // Open ROOT file
     TFile *file = TFile::Open(datafile.c_str(), "READ");
     if(!file || file->IsZombie()) {
-        logError("Error: Could not open " + datafile);
+        logError("Error: Could not open " + datafile + ".");
         return;
     }
 
@@ -44,6 +47,10 @@ void print_content(const std::string& datafile) {
 
         // Read object class from it's key.
         TObject *obj = key->ReadObj();
+        if(!obj){
+            logError("From print_content: could not load TObject inside " + datafile + ".");
+            return;
+        }
         // Print current object's Name and Class.
         std::cout << "Name: " << obj->GetName()
                   << " | Class: " << obj->ClassName() << std::endl;
@@ -53,7 +60,7 @@ void print_content(const std::string& datafile) {
 
             TDirectory *dir = (TDirectory*)obj;
             if(!dir){
-                logError("From print: could not open" + datafile + "sub-directory.");
+                logError("From print_content: could not open" + datafile + "sub-directory.");
                 return;
             }
             
@@ -63,6 +70,10 @@ void print_content(const std::string& datafile) {
 
                 // Sub-object located in the directory.
                 TObject *sub_obj = subKey->ReadObj();
+                if(!sub_obj){
+                    logError("From print_content: error while read sub-object inside " + datafile + ".");
+                    return;
+                }
                 std::cout << "   -> " << sub_obj->GetName()
                           << " | Class: " << sub_obj->ClassName() << std::endl;
             }
