@@ -1,6 +1,8 @@
 // Plots 'hfSumEtPb' and 'hfSumEtp' TH1D histograms on the same TCanvas for each respective collision energy dataset.
 // 'hfSumEtPb' contains the TH1D histogram of the sum of the transverse component of the total collision energy deposited on the Pb-going HF detector.
 // 'hfSumEtp' same observable but for the p-going HF detector.
+//
+// --- lucasdoriadecarvalho@gmail.com
 
 // To-do's
 // - Check Bins functions.
@@ -22,7 +24,7 @@
 // --- Global settings (variables)
 bool set_Normalization = false;
 bool set_LogScale = false;
-const std::string output_extension = ".png";
+const std::string output_extension = ".pdf";
 const std::string base_output_path = "../../../../mnt/c/Users/lucas/Documents/";
 
 // --- Path to data files
@@ -215,7 +217,7 @@ void refine_hist(TH1D* h1, Color_t color_h1, TH1D *h2, Color_t color_h2){
 
     // Pb-going side histogram SETTINGS (Currently plotting with filling style.)
     h1->SetStats(0);
-    h1->SetLineWidth(2);
+    h1->SetLineWidth(1);
     h1->SetLineStyle(1);
     h1->SetFillColorAlpha(color_h1 + 1, 0.5);
     h1->SetLineColor(color_h1 + 2);
@@ -223,7 +225,7 @@ void refine_hist(TH1D* h1, Color_t color_h1, TH1D *h2, Color_t color_h2){
 
     // p-going side histogram SETTINGS.
     h2->SetStats(0);
-    h2->SetLineWidth(2);
+    h2->SetLineWidth(1);
     h2->SetLineStyle(1);
     h2->SetFillColorAlpha(color_h2 + 1, 0.5);
     h2->SetLineColor(color_h2 + 2);
