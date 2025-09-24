@@ -32,10 +32,10 @@ void print_contents(){
 
 // --- Function definitions
 void print_content(const std::string& datafile) {
-    // Open ROOT file
+
     TFile *file = TFile::Open(datafile.c_str(), "READ");
     if(!file || file->IsZombie()) {
-        logError("Error: Could not open " + datafile + ".");
+        logError("Error: Could not open " + datafile);
         return;
     }
 
@@ -45,10 +45,9 @@ void print_content(const std::string& datafile) {
     TKey *key;
     while ( (key = (TKey*)nextKey()) ){
 
-        // Read object class from it's key.
         TObject *obj = key->ReadObj();
         if(!obj){
-            logError("From print_content: could not load TObject inside " + datafile + ".");
+            logError("From print_content: Error getting TObject inside " + datafile);
             return;
         }
         // Print current object's Name and Class.
@@ -60,7 +59,7 @@ void print_content(const std::string& datafile) {
 
             TDirectory *dir = (TDirectory*)obj;
             if(!dir){
-                logError("From print_content: could not open" + datafile + "sub-directory.");
+                logError("From print_content: Error while getting TDirectory class in" + datafile);
                 return;
             }
             
@@ -71,8 +70,8 @@ void print_content(const std::string& datafile) {
                 // Sub-object located in the directory.
                 TObject *sub_obj = subKey->ReadObj();
                 if(!sub_obj){
-                    logError("From print_content: error while read sub-object inside " + datafile + ".");
-                    return;
+                    logError("From print_content: Error while read sub-object inside " + datafile);
+                    continue;
                 }
                 std::cout << "   -> " << sub_obj->GetName()
                           << " | Class: " << sub_obj->ClassName() << std::endl;
