@@ -7,7 +7,7 @@
 #include <TClass.h>
 #include <TKey.h>
 
-// --- Data files
+// --- Path to data files
 const std::string data_File_5TeV = "../../pPb_meanpT_vs_Nch_histos_5TeV_MBonly_PUGPlus_HFSumEtEta4_TrkEta2p4_v12-09-01-25_tot.root";
 const std::string data_File_8TeV = "../../pPb_meanpT_vs_Nch_histos_8TeV_MBonly_PUGPlus_HFSumEtEta4_TrkEta2p4_v12-09-01-25_tot.root";
 
