@@ -12,6 +12,9 @@ const DataFile data_File_5TeV = {
     "5TeV"
 };
 
+// --- Global variables
+const char* target_hist = "hfSumEtPb";
+
 void logError(const std::string& message);
 
 void test(){
@@ -31,24 +34,36 @@ void test(){
         return;
     }
 
-    TH1D* hist = (TH1D*)dir->Get("hfSumEtPb");
+    TH1D* hist = (TH1D*)dir->Get(target_hist);
     if (!hist){
-        logError("Error: from get_th1d: Could not load TH1 histogram hist.");
+        logError("Error: from get_th1d: Could not load target histogram hist.");
         return;
     }
     hist->SetDirectory(0);
     file->Close();
 
     int n_bins = hist->GetNbinsX();
-    double bin_content = hist->GetBinContent(1);
 
-    double low_edge = hist->GetXaxis()->GetBinLowEdge(3);
-    double up_edge = hist->GetXaxis()->GetBinUpEdge(3);
+    double underflow_content = hist->GetBinContent(0);
+    double overflow_content = hist->GetBinContent(n_bins+1);
+    
+    printf("Underflow content = %.f \n", underflow_content);
+    printf("Overflow content = %.f \n", overflow_content);
 
-    std::cout << "low edge = " << low_edge << ", up edge = " << up_edge << std::endl;
-    std::cout << "bin content = " << bin_content << std::endl;
+    int i = 5;
 
-    std::cout << "integral without anything" << hist->Integral() << "Integral with explicit bins" << hist->Integral(0,250) << std::endl;
+    double bin_content = hist->GetBinContent(i);
+    double low_edge = hist->GetXaxis()->GetBinLowEdge(i);
+    double up_edge = hist->GetXaxis()->GetBinUpEdge(i);
+
+    printf("Bin %d content = %f \n", bin_content);
+    printf("Bin %d lower edge = %f \n", low_edge);
+    printf("Bin %d upper edge = %f \n", up_edge);
+
+//    std::cout << "low edge = " << low_edge << ", up edge = " << up_edge << std::endl;
+//    std::cout << "bin content = " << bin_content << std::endl;
+
+//    std::cout << "integral without anything" << hist->Integral() << "Integral with explicit bins" << hist->Integral(0,250) << std::endl;
 
 
 }

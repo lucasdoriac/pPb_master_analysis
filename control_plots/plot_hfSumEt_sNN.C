@@ -245,6 +245,9 @@ void refine_hist(TH1D* h1, Color_t color_h1, TH1D *h2, Color_t color_h2){
     // Normalization settings.
     double Int;
     if(set_Normalization){
+        // By default, the hist->Integral() method doesn't include underflow and overflow bins.
+        // That means the interval of integration is implicitly Integral(1, nbins);
+        // If we want to include underflow and overflow bins we need to explicitly set Integral(0, nbins+1);
         Int = h1->Integral();
         if (Int > 0) h1->Scale(1.0 / Int);
         Int = h2->Integral();
