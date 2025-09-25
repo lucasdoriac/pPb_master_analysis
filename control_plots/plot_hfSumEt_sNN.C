@@ -57,7 +57,7 @@ void logError(const std::string& message);
 // --- main () ---
 void plot_hfSumEt_sNN(){
 
-    gROOT->SetBatch(kTRUE);
+    gROOT->SetBatch(kTRUE); // This tells ROOT to run in Batch mode, i. e. no GUI or pop-ups.
     TH1D *h1, *h2;
 
     // Gets histograms from "/QA_histograms/"
@@ -266,12 +266,18 @@ void refine_hist(TH1D* h1, Color_t color_h1, TH1D *h2, Color_t color_h2){
 
 
 int GetLastNonZeroBin(const TH1D *hist) {
-    if (!hist) return -1;  // protect against null
-    for (int i = hist->GetNbinsX(); i >= 1; --i) {
+    
+    if (!hist){
+        logError("From GetLastNonZeroBin: Couldn't load TH1D histogram.");
+        return -1;
+    }
+    
+    for (int i = hist->GetNbinsX(); i >= 1; --i) {    
         if (hist->GetBinContent(i) > 0) {
             return i; // return index of last nonzero bin
         }
     }
+    
     return -1; // no nonzero bins
 }
 
@@ -282,7 +288,7 @@ double GetLastNonZeroX(const TH1D *hist) {
 }
 
 
-void logError(const std::string& message){
+void logError(const std::string& message) {
     // Set off stream to error.log file.
     std::ofstream err_log("plot_hfSumEt_sNN.log", std::ios::app);
 
