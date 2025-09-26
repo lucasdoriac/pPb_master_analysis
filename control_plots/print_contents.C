@@ -19,7 +19,7 @@ void print_content(const std::string& datafile);
 void logError(const std::string& message);
 
 // --- main() ---
-void print_contents(){
+void print_contents() {
 
     std::cout << "\n 5 TeV dataset: " << std::endl;
     print_content(data_File_5TeV);
@@ -43,7 +43,7 @@ void print_content(const std::string& datafile) {
 
     TIter nextKey(file->GetListOfKeys());
     TKey *key;
-    while ( (key = (TKey*)nextKey()) ){
+    while ( (key = (TKey*)nextKey()) ) {
 
         TObject *obj = key->ReadObj();
         if(!obj){
@@ -55,21 +55,21 @@ void print_content(const std::string& datafile) {
                   << " | Class: " << obj->ClassName() << std::endl;
 
         // If it's a directory, also list its contents.
-        if (obj->InheritsFrom(TDirectory::Class())){
+        if ( obj->InheritsFrom(TDirectory::Class()) ) {
 
             TDirectory *dir = (TDirectory*)obj;
-            if(!dir){
+            if(!dir) {
                 logError("From print_content: Error while getting TDirectory class in" + datafile);
                 return;
             }
             
             TIter nextDirKey(dir->GetListOfKeys());
             TKey *subKey;
-            while ((subKey = (TKey*)nextDirKey())){
+            while ( (subKey = (TKey*)nextDirKey()) ) {
 
                 // Sub-object located in the directory.
                 TObject *sub_obj = subKey->ReadObj();
-                if(!sub_obj){
+                if(!sub_obj) {
                     logError("From print_content: Error while read sub-object inside " + datafile);
                     continue;
                 }
@@ -82,11 +82,11 @@ void print_content(const std::string& datafile) {
     file->Close();
 }
 
-void logError(const std::string& message){
-    // Set off stream to error.log file.
+void logError(const std::string& message) {
+    // Set error output to err_log file.
     std::ofstream err_log("print_contents.log", std::ios::app);
 
-    if (err_log.is_open()){
+    if(err_log.is_open()) {
         err_log << message << std::endl;
     }
     else {

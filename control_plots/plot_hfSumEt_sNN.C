@@ -18,8 +18,10 @@
 
 // --- Global settings (variables)
 bool set_Normalization = false;
-bool set_LogScale = false;
+bool set_LogScale = true;
+bool set_range = true;
 const std::string output_extension = ".pdf";
+const std::string output_name = "hfSumEt_sNN_"
 const std::string base_output_path = "../../../../mnt/c/Users/lucas/Documents/";
 
 // --- Structs
@@ -45,17 +47,12 @@ const DataFile data_File_8TeV = {
 TCanvas* makeCanvas(const char *name = "c", const char *title = "Canvas", int width = 800, int height = 600);
 TH1D* get_th1d(const std::string& filename, const std::string& histogram);
 void plot_th1(const std::string& coll_energy, TH1D *h1, TH1D *h2);
-void refine_hist(TH1D *h1, Color_t color_h1, TH1D *h2, Color_t color_h2);
-int GetLastNonZeroBin(const TH1D *hist);
-double GetLastNonZeroX(const TH1D *hist);
+void refine_hist(const std::string& coll_energy, TH1D *h1, Color_t color_h1, TH1D *h2, Color_t color_h2);
 void logError(const std::string& message);
 
-// Currently doing:
-// - Check Bins functions.
-// 24-09-16h48
 
 // --- main () ---
-void plot_hfSumEt_sNN(){
+void plot_hfSumEt_sNN() {
 
     gROOT->SetBatch(kTRUE); // This tells ROOT to run in Batch mode, i. e. no GUI or pop-ups.
     TH1D *h1, *h2;
@@ -65,20 +62,19 @@ void plot_hfSumEt_sNN(){
     h2 = get_th1d(data_File_5TeV.path, "hfSumEtp"); //h2-> p-going side.
     // Plots histograms to files.
     if(h1 && h2) plot_th1(data_File_5TeV.label, h1, h2);
-    else logError("Skipping 5TeV plot due to missing histogram(s).");
+    else logError("Skipping 5TeV plot due to missing histogram.");
 
     h1 = get_th1d(data_File_8TeV.path, "hfSumEtPb");
     h2 = get_th1d(data_File_8TeV.path, "hfSumEtp");
     // Plots histograms to files.
     if(h1 && h2) plot_th1(data_File_8TeV.label, h1, h2);
-    else logError("Skipping 8TeV plot due to missing histogram(s).");
-
+    else logError("Skipping 8TeV plot due to missing histogram.");
 }
 
 // --- Function definitions
 
-TCanvas* makeCanvas(const char* name, const char *title, int width, int height) 
-{
+TCanvas* makeCanvas(const char* name, const char *title, int width, int height) {
+
     TCanvas* c = new TCanvas(name, title, width, height);
 
     // Margins
@@ -104,17 +100,17 @@ TCanvas* makeCanvas(const char* name, const char *title, int width, int height)
     return c;
 }
 
-TH1D* get_th1d(const std::string& filename, const std::string& histogram){
+TH1D* get_th1d(const std::string& filename, const std::string& histogram) {
 
     // Gets TH1D histogram located on "QA_histograms" from filename.
     TFile *file = TFile::Open(filename.c_str(), "READ");
-    if (!file || file->IsZombie()){
+    if(!file || file->IsZombie()) {
         logError("Error: from get_th1d: Could not open file " + filename);
         return nullptr;
     }
 
     TDirectory *dir = (TDirectory*)file->Get("QA_histograms");
-    if (!dir) {
+    if(!dir) {
         logError("Error: from get_th1d: Could not load directory 'QA_histograms'.");
         file->Close();
         return nullptr;
@@ -131,13 +127,13 @@ TH1D* get_th1d(const std::string& filename, const std::string& histogram){
     return hist;
 }
 
-void plot_th1(const std::string& coll_energy, TH1D *h1, TH1D *h2){
+void plot_th1(const std::string& coll_energy, TH1D *h1, TH1D *h2) {
 
     // Plots TH1D histograms. Pb vs p going side HF calorimeter measured energies.
     TCanvas* c = makeCanvas();
 
     // Prepares histograms for plot.
-    refine_hist(h1, kGreen, h2, kCyan);
+    refine_hist(coll_energy, h1, kGreen, h2, kCyan);
 
     // Currently plotting as filling. To plot as markers use the commented code.
     h1->Draw("HIST");
@@ -187,17 +183,16 @@ void plot_th1(const std::string& coll_energy, TH1D *h1, TH1D *h2){
     c->Modified();
     c->Update();
 
-    // Output settings.
-    std::string output_name = "hfSumEt_sNN_" + coll_energy;
-    std::string full_path = base_output_path + output_name + output_extension;
+    // Output string.
+    std::string full_path = base_output_path + output_name + coll_energy + output_extension;
 
     c->SaveAs(TString(full_path));
     delete c;
 }
 
-void refine_hist(TH1D* h1, Color_t color_h1, TH1D *h2, Color_t color_h2){
+void refine_hist(const std::string& coll_energy, TH1D* h1, Color_t color_h1, TH1D *h2, Color_t color_h2) {
     
-    if(!h1 || !h2){
+    if(!h1 || !h2) {
         logError("From refine_hist: histograms were not passed correctly as variables.");
         return;
     }
@@ -205,7 +200,8 @@ void refine_hist(TH1D* h1, Color_t color_h1, TH1D *h2, Color_t color_h2){
     h1->SetTitle("");
     h1->GetXaxis()->SetTitle("E_{T,sum}^{HF} [GeV]");
     if(set_Normalization) h1->GetYaxis()->SetTitle("Density of events");
-    else h1->GetYaxis()->SetTitle("Number of Events (#times 10^{6})");
+    else if (!set_Normalization && !set_LogScale) h1->GetYaxis()->SetTitle("Number of Events (#times 10^{6})");
+    else if (!set_Normalization && set_LogScale) h1->GetYaxis()->SetTitle("Number of Events");
 
     h1->GetXaxis()->CenterTitle(true);
     h1->GetYaxis()->CenterTitle(true);
@@ -244,58 +240,41 @@ void refine_hist(TH1D* h1, Color_t color_h1, TH1D *h2, Color_t color_h2){
 
     // Normalization settings.
     double Int;
-    if(set_Normalization){
+    if(set_Normalization) {
         // By default, the hist->Integral() method doesn't include underflow and overflow bins.
         // That means the interval of integration is implicitly Integral(1, nbins);
         // If we want to include underflow and overflow bins we need to explicitly set Integral(0, nbins+1);
         Int = h1->Integral();
-        if (Int > 0) h1->Scale(1.0 / Int);
+        if(Int > 0) h1->Scale(1.0 / Int);
         Int = h2->Integral();
-        if (Int > 0) h2->Scale(1.0 / Int);
+        if(Int > 0) h2->Scale(1.0 / Int);
     }
 
     // Settings for better plot of raw counts. No normalization. 
-    if(!set_Normalization && !set_LogScale){
+    if(!set_Normalization && !set_LogScale) {
         h1->GetYaxis()->SetNoExponent(kTRUE);
         h1->Scale(1.0 / 1e+6);
         h2->Scale(1.0 / 1e+6);
     }
 
-    // Adjusting X-axis range.
-    int lastBin = GetLastNonZeroBin(h1);
-    double xmax = GetLastNonZeroX(h1);
-    h1->GetXaxis()->SetRangeUser(0.0, xmax + 10.0);
-}
-
-
-int GetLastNonZeroBin(const TH1D *hist) {
-    
-    if (!hist){
-        logError("From GetLastNonZeroBin: Couldn't load TH1D histogram.");
-        return -1;
+    // Adjusting axes range. There are helpers to do this automatically in the end of the code if wanted.
+    // I generally use them first to see the data range and then adjust the axes range manually for better plots.
+    // Change as wanted.
+    if(coll_energy == data_File_5TeV.label && set_range){
+        h1->GetXaxis()->SetRangeUser(0.0, 120.0);
+        h1->GetYaxis()->SetRangeUser(1.0, 1e+8);
     }
-    
-    for (int i = hist->GetNbinsX(); i >= 1; --i) {    
-        if (hist->GetBinContent(i) > 0) {
-            return i; // return index of last nonzero bin
-        }
+    else if(coll_energy == data_File_8TeV.label && set_range){
+        h1->GetXaxis()->SetRangeUser(0.0, 160.0);
+        h1->GetYaxis()->SetRangeUser(1.0, 1e+9);
     }
-    
-    return -1; // no nonzero bins
 }
-
-double GetLastNonZeroX(const TH1D *hist) {
-    int bin = GetLastNonZeroBin(hist);
-    if (bin < 0) return hist->GetXaxis()->GetXmin(); // fallback
-    return hist->GetXaxis()->GetBinUpEdge(bin); // upper edge of that bin
-}
-
 
 void logError(const std::string& message) {
-    // Set off stream to error.log file.
+    // Set error output to err_log file.
     std::ofstream err_log("plot_hfSumEt_sNN.log", std::ios::app);
 
-    if (err_log.is_open()){
+    if(err_log.is_open()) {
         err_log << message << std::endl;
     }
     else {
