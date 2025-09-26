@@ -21,7 +21,7 @@ bool set_Normalization = false;
 bool set_LogScale = true;
 bool set_range = true;
 const std::string output_extension = ".pdf";
-const std::string output_name = "hfSumEt_sNN_"
+const std::string output_name = "hfSumEt_sNN_";
 const std::string base_output_path = "../../../../mnt/c/Users/lucas/Documents/";
 
 // --- Structs
