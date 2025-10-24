@@ -189,7 +189,20 @@ std::cout << "Last upper edge: " << zmax << std::endl;
     }
 
     double mean_pT = extrapolated_hist-> GetMean();
+    double mean_pT_error = extrapolated_hist->GetMeanError();
+
+    double n_tracks_error = 0.0;
+    double n_tracks = extrapolated_hist->IntegralAndError(1, extrapolated_hist->GetNbinsX(), n_tracks_error);
+
+    double n_events = get_n_events();
+    double N_ch = (n_tracks/n_events);
+    double N_ch_error = (n_tracks_error/n_events);
+
+    printf("\n-> --- Results for 30-80%% centrality class for 8 TeV dataset! --- \n");
     printf("\n-> <pT> = %.5f \n", mean_pT);
+    printf("\n-> <pT> error = %.5f \n", mean_pT_error);
+    printf("\n-> N_ch = %.5f \n", N_ch);
+    printf("\n-> N_ch error = %.5f \n", N_ch_error);
 
     return;
 }
