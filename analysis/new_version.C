@@ -7,9 +7,15 @@
 (Centrality class)(5.02 TeV)(8.16 TeV)
 30 - 80% => 2.5–11.5 GeV, 2.5–14.5 GeV.
 1 - 30%  => 11.5–35 GeV, 14.5–44 GeV.
-0 - 1%   => >35 GeV, >44 GeV.
+0 - 1%   => > 35 GeV, > 44 GeV.
 
 ---------------Lucas Carvalho---------------*/
+
+// --- To do's
+// 2. We dont need to clone the histogram we pass to the hagedorn fit function.
+// 3. Rewrite to print only the important information in the end of the get_pt_th1d_hist function.
+// For example: "Selected p_T distribution in the pseudorapidity window [] and centrality class []".
+// 4. We need to save fit results and data to a dat file.
 
 // --- Headers ---
 #include <TFile.h>
@@ -18,8 +24,6 @@
 #include <TH2.h>
 #include <TH3.h>
 #include <TF1.h>
-#include <TMath.h>
-#include <Math/MinimizerOptions.h>
 #include <TGraphErrors.h>
 #include <TCanvas.h>
 #include <TLatex.h>
@@ -45,7 +49,7 @@ double upper_pt_forFit = 1.5; // GeV
 double delta = 1e-6; // GeV
 const std::string fit_type = "cms";
 TString plot_extension = ".pdf";
-TString output_name = "mean_pT_vs_Nch_CMS"; // Output name of Fig. 1 reproduction. Plots <pT>(Nch) for n_centralities for both collision energies.
+TString output_name = "mean_pT_vs_Nch_CMS";
 TString base_output_path = "../../../../mnt/c/Users/lucas/Documents/"; // Base path where the outputs will be saved.
 
 // ##############################################################################
@@ -56,18 +60,11 @@ TString base_output_path = "../../../../mnt/c/Users/lucas/Documents/"; // Base p
 std::vector<double> mean_pT_data_5TeV;
 std::vector<double> mean_pT_errors_5TeV;
 std::vector<double> N_ch_values_5TeV;
-std::vector<double> N_ch_errors_5TeV;
 
 // --- Vectors to store 8TeV data
 std::vector<double> mean_pT_data_8TeV;
 std::vector<double> mean_pT_errors_8TeV;
 std::vector<double> N_ch_values_8TeV;
-std::vector<double> N_ch_errors_8TeV;
-
-// --- Vectors to store cs results
-std::vector<double> cs_results;
-std::vector<double> cs_errors;
-
 
 // --- Energy cutoff values for 5TeV data [GeV]
 std::vector<std::pair<double, double>> arr_5 = {
@@ -93,7 +90,7 @@ struct DataFile {
 
 // --- struct to 5TeV dataset
 const DataFile dataFile_5TeV = {
-    "../../pPb_meanpT_vs_Nch_histos_5TeV_MBonly_PUGPlus_HFSumEtEta4_TrkEta2p4_v13-10-02-25_tot.root",
+    "../../pPb_meanpT_vs_Nch_histos_5TeV_MBonly_PUGPlus_HFSumEtEta4_TrkEta2p4_v12-09-01-25_tot.root",
     "dataFile_5TeV",
     "5TeV",
     "_5TeV"
@@ -101,7 +98,7 @@ const DataFile dataFile_5TeV = {
 
 // --- struct to 8TeV dataset
 const DataFile dataFile_8TeV = {
-    "../../pPb_meanpT_vs_Nch_histos_8TeV_MBonly_PUGPlus_HFSumEtEta4_TrkEta2p4_v13-10-02-25_tot.root",
+    "../../pPb_meanpT_vs_Nch_histos_8TeV_MBonly_PUGPlus_HFSumEtEta4_TrkEta2p4_v12-09-01-25_tot.root",
     "dataFile_8TeV",
     "8TeV",
     "_8TeV"
@@ -122,16 +119,12 @@ void Hagedorn_extrapolation(TH1D* hist_pT, const std::string& filename, double E
 // Function to keep log of the macro's run.
 void macro_log(const std::string& message);
 // Function to draw CMS LaTeX header.
-void drawCMSHeader(const char* extraText = "#it{Work in Progress}", double x = 0.12, double y = 0.93);
-void plot_fig_2();
+void drawCMSHeader(const char* extraText = "#it{Preliminary}", double x = 0.12, double y = 0.93);
+
 
 // --- main() ---
-void add_cs_function(){
+void new_version(){
     gROOT->SetBatch(kTRUE); // This tells ROOT to run in batch mode, i.e. no GUI or pop-ups.
-
-    ROOT::Math::MinimizerOptions::SetDefaultMinimizer("Minuit2");
-    ROOT::Math::MinimizerOptions::SetDefaultTolerance(1e-8);
-    ROOT::Math::MinimizerOptions::SetDefaultMaxFunctionCalls(1000000);
 
 	// Track cpu efficiency.
     TStopwatch timer;
@@ -144,9 +137,9 @@ void add_cs_function(){
 
     TH1D *hist = nullptr;
     if(hagedorn_fit){
-        // Calculates with hagedorn fitting and p_T extrapolation for p_T > 0 GeV region. Stores the <pT>(Nch) data on global vectors.
-        Hagedorn_extrapolation(get_pT_TH1Dhistogram(dataFile_5TeV.path, low5, high5), dataFile_5TeV.path, low5, high5);
+        // Calculates with hagedorn fitting and p_T extrapolation for p_T > 0 GeV region.
         Hagedorn_extrapolation(get_pT_TH1Dhistogram(dataFile_8TeV.path, low8, high8), dataFile_8TeV.path, low8, high8);
+        Hagedorn_extrapolation(get_pT_TH1Dhistogram(dataFile_5TeV.path, low5, high5), dataFile_5TeV.path, low5, high5);
     }
 
     else{
@@ -159,8 +152,7 @@ void add_cs_function(){
 
     // The functions below only deal with the data vectors.
     if(canvas_plot){
-        plot_pT_vs_Nch();
-        plot_fig_2();
+	   plot_pT_vs_Nch();
     }
 
     printResults_to_datafile(); // This function always needs to be called.
@@ -178,8 +170,8 @@ void plot_pT_vs_Nch(){
     // Make graphs with TGraphErrors(npoints, x = N_ch, y = <pT>, N_ch errors, <pT> errors).
     // Since TGE doesn't read vectors we use .data() that returns a raw pointer (double*) to the first element of the vector.
     // e.g. mean_pT_data_8TeV.data() -> pointer to the first element (the 30-80% centrality class <pT>).
-    TGraphErrors *g5 = new TGraphErrors(n_centralities, N_ch_values_5TeV.data(), mean_pT_data_5TeV.data(), N_ch_errors_5TeV.data(), mean_pT_errors_5TeV.data());
-    TGraphErrors *g8 = new TGraphErrors(n_centralities, N_ch_values_8TeV.data(), mean_pT_data_8TeV.data(), N_ch_errors_8TeV.data(), mean_pT_errors_8TeV.data());
+    TGraphErrors *g5 = new TGraphErrors(n_centralities, N_ch_values_5TeV.data(), mean_pT_data_5TeV.data(), nullptr, mean_pT_errors_5TeV.data());
+    TGraphErrors *g8 = new TGraphErrors(n_centralities, N_ch_values_8TeV.data(), mean_pT_data_8TeV.data(), nullptr, mean_pT_errors_8TeV.data());
     // N_ch errors is assigned nullptr while i don't know if we need to estimate N_ch errors.
 
     TCanvas *c = new TCanvas("c","canvas", 800, 600);
@@ -216,62 +208,33 @@ void plot_pT_vs_Nch(){
     g8->GetYaxis()->SetLabelSize(0.036);
 
     // 5TeV data settings.
-    g5->SetMarkerStyle(20);
-    g5->SetMarkerSize(1.2);
+    g5->SetMarkerStyle(20);  // circle
     g5->SetMarkerColor(kGreen + 1);
+    g5->SetLineColor(kGreen + 1);
 
     // 8TeV data settings.
-    g8->SetMarkerStyle(20);
-    g8->SetMarkerSize(1.2);
+    g8->SetMarkerStyle(20);  // circle
     g8->SetMarkerColor(kBlue + 1);
+    g8->SetLineColor(kBlue + 1);
 
     // Draw on canvas c
     g8->GetXaxis()->SetTitle("N_{ch}");
-    g8->GetYaxis()->SetTitle("#LTp_{T}#GT [GeV]");
-    //g8->GetYaxis()->SetRangeUser(0.48, 0.85);
-    //g8->GetXaxis()->SetRangeUser(36, 200);
+    g8->GetYaxis()->SetTitle("#LTp_{T}#GT [GeV/c]");
+    g8->GetYaxis()->SetRangeUser(0.48, 0.85);
+    g8->GetXaxis()->SetRangeUser(36, 200);
     g8->Draw("APE");
     g5->Draw("PE SAME");
-    g8->GetXaxis()->SetLimits(36, 200);
-    g8->GetYaxis()->SetRangeUser(0.48, 0.85);
 
     // Legend
-    auto leg = new TLegend(0.26,0.26,0.56,0.48);
+    auto leg = new TLegend(0.24,0.28,0.54,0.50);
     leg->AddEntry(g8,"8.16 TeV","p");
     leg->AddEntry(g5,"5.02 TeV","p");
-
-    // Speed of sound fits
-    for(int i = 0; i < n_centralities; ++i){
-        double x_sub[2] = {N_ch_values_5TeV[i], N_ch_values_8TeV[i]};
-        double y_sub[2] = {mean_pT_data_5TeV[i], mean_pT_data_8TeV[i]};
-        double x_err[2] = {N_ch_errors_5TeV[i], N_ch_errors_8TeV[i]};
-        double y_err[2] = {mean_pT_errors_5TeV[i], mean_pT_errors_8TeV[i]};
-        TGraphErrors *sub_gr = new TGraphErrors(2, x_sub, y_sub, x_err, y_err);
-
-        TF1 *cs_fit = new TF1(Form("fit_%d",i),"[0]*pow(x,[1])", N_ch_values_5TeV[i], N_ch_values_8TeV[i]);
-        cs_fit->SetParameters(0.25, 0.22);
-
-        cs_fit->SetLineWidth(4);
-        cs_fit->SetLineStyle(7);
-        cs_fit->SetLineColor(kBlack);
-        // Fit section
-        sub_gr->Fit(cs_fit,"NO R EX0 Q","",N_ch_values_5TeV[i], N_ch_values_8TeV[i]);
-        sub_gr->Fit(cs_fit,"NO R EX0 Q","",N_ch_values_5TeV[i], N_ch_values_8TeV[i]);
-        TFitResultPtr cs_fit_result = sub_gr->Fit(cs_fit,"NO R EX0 M S","",N_ch_values_5TeV[i], N_ch_values_8TeV[i]);
-        
-        cs_fit->Draw("SAME");
-        if(i==0) leg->AddEntry(cs_fit,"Fit","l");
-
-        cs_results.push_back(cs_fit->GetParameter(1));
-        cs_errors.push_back(cs_fit->GetParError(1));
-    }
-
     // Legend settings
     leg->SetHeader("Data"); // theres a flag "C" that centers the text.
     leg->SetBorderSize(0);
-    leg->SetFillStyle(0);
+    leg->SetFillStyle(0);    // for transparent background
     leg->SetTextSize(0.045);
-    leg->SetTextFont(42);
+    leg->SetTextFont(42);    // verdana
     leg->SetMargin(0.2);
     leg->SetEntrySeparation(0.04);
     leg->Draw();
@@ -319,32 +282,33 @@ TH1D* get_pT_TH1Dhistogram(const std::string& filename, double EHFmin, double EH
     int z_max = hist_HFSumPb_vs_pt_eta->GetZaxis()->FindBin(high_eta - delta);
     hist_HFSumPb_vs_pt_eta->GetZaxis()->SetRange(z_min, z_max);
 
-    // If one wants to check pseudorapidity window.
-    double lowEdge = hist_HFSumPb_vs_pt_eta->GetZaxis()->GetBinLowEdge(z_min);
-    double highEdge = hist_HFSumPb_vs_pt_eta->GetZaxis()->GetBinUpEdge(z_min);
-    double lowEdge_ = hist_HFSumPb_vs_pt_eta->GetZaxis()->GetBinLowEdge(z_max);
-    double highEdge_ = hist_HFSumPb_vs_pt_eta->GetZaxis()->GetBinUpEdge(z_max);
-    printf("\n-> From get_proj_hist: Pseudorapidity window from bin [%.1f,%.1f] to bin [%.1f,%.1f] \n\n", lowEdge, highEdge, lowEdge_, highEdge_);
-    //
-
     // Projection to TH2 by integrating on pseudorapidity window [low_eta, high_eta].
     TH2D *hist_HFSumPb_vs_pt = (TH2D*) hist_HFSumPb_vs_pt_eta->Project3D("yx");
     if (!hist_HFSumPb_vs_pt){
     	macro_log("Error: from get_proj_hist function: Error while creating TH2 histogram.");
         return nullptr;
     }
+    hist_HFSumPb_vs_pt->SetDirectory(0);
+
+    /*// If one wants to check pseudorapidity window.
+    double lowEdge = hist_HFSumPb_vs_pt_eta->GetZaxis()->GetBinLowEdge(z_min);
+    double highEdge = hist_HFSumPb_vs_pt_eta->GetZaxis()->GetBinUpEdge(z_min);
+    double lowEdge_ = hist_HFSumPb_vs_pt_eta->GetZaxis()->GetBinLowEdge(z_max);
+    double highEdge_ = hist_HFSumPb_vs_pt_eta->GetZaxis()->GetBinUpEdge(z_max);
+    printf("\n-> From get_proj_hist: Pseudorapidity window from bin [%.1f,%.1f] to bin [%.1f,%.1f] \n\n", lowEdge, highEdge, lowEdge_, highEdge_);
+    //*/
 
     // Setting centrality class defined by HF energy cutoffs EHFmin, EHFmax.
     int bin_min = hist_HFSumPb_vs_pt->GetXaxis()->FindBin(EHFmin + delta);
     int bin_max = hist_HFSumPb_vs_pt->GetXaxis()->FindBin(EHFmax - delta);
 
-    // If one wants to check selected bins for centrality class.
+    /*// If one wants to check selected bins for centrality class.
     lowEdge = hist_HFSumPb_vs_pt->GetXaxis()->GetBinLowEdge(bin_min);
     highEdge = hist_HFSumPb_vs_pt->GetXaxis()->GetBinUpEdge(bin_min);
     lowEdge_ = hist_HFSumPb_vs_pt->GetXaxis()->GetBinLowEdge(bin_max);
     highEdge_ = hist_HFSumPb_vs_pt->GetXaxis()->GetBinUpEdge(bin_max);
     printf("\n-> From get_proj_hist: Integrating from bin [%.1f,%.1f]GeV to bin [%.1f,%.1f]GeV \n\n", lowEdge, highEdge, lowEdge_, highEdge_);
-    //
+    //*/
 
     // Projects TH2 on TH1 for the defined centrality class.
     TH1D *hist_pT = (TH1D*)hist_HFSumPb_vs_pt->ProjectionY("", bin_min, bin_max);
@@ -391,10 +355,6 @@ void Hagedorn_extrapolation(TH1D* hist_pT, const std::string& filename, double E
     double original_hist_norm = original_hist->Integral(bin_min, bin_max); // Integral over [0.3,1.5].
     printf("\n-> From make_hagedorn_extrapolation: original_hist norm over [0.3, 1.5] GeV = %.3e \n\n\n", original_hist_norm);
 
-    // #############################################
-    // --------THE FIT SECTION STARTS HERE----------
-    // #############################################
-
     // Hagedorn TF1. Function declaration section.
     TF1* pT_fit;
     int cc_low = static_cast<int>(EHFmin);
@@ -402,31 +362,38 @@ void Hagedorn_extrapolation(TH1D* hist_pT, const std::string& filename, double E
     
     // Original.
 	pT_fit = new TF1(Form("ptfit_%d_%d",cc_low,cc_up),"[0]*x*pow(1.+1./sqrt(1.-[1]*[1])*(sqrt(x*x+[4]*[4])-x*[1])/[3]/[2],-[3])",0.,upper_pt_forFit);
-    pT_fit->SetParameters(7500000000.,0.3,0.1,6.,0.14);//We used these values for initialization        
+	pT_fit->SetParameters(7500000000.,0.3,0.1,6.,0.14);//We used these values for initialization    	
     pT_fit->FixParameter(4,0.13957);//pion mass
-    pT_fit->SetParLimits(2,0.,0.5);//kinetic freeze-out temperature in GeV    
-    pT_fit->SetParLimits(3,4.,9.);//n - free parameter no physical meaning
+    
     if(filename == dataFile_5TeV.path){
         pT_fit->FixParameter(1, 0.4034);// related to radial flow velocity - pPb 5TeV
     }
     else if(filename == dataFile_8TeV.path){
         pT_fit->FixParameter(1, 0.5010);//related to radial flow velocity - pPb 8TeV
     }
-    //pT_fit->SetParLimits(3,6.,9.);//old limit for parameter [3].
 
+    pT_fit->SetParLimits(2,0.,0.5);//kinetic freeze-out temperature in GeV
+    pT_fit->SetParLimits(3,6.,9.);//n - free parameter no physical meaning
+    
+    // Somente para o caso onde queremos visualmente verificar o fit.
+    // Vou usar so uma vez para criar um plot para os slides com os dados 0-1% 8TeV.
+    /*TCanvas *fit_canvas = new TCanvas("fit_canvas","Fit Canvas",800,600);
+    original_hist->GetXaxis()->SetRangeUser(0.0, 3.0);
+    original_hist->SetMarkerStyle(20);
+    original_hist->SetMarkerColor(kBlack);
+    original_hist->Draw("E");
+    pT_fit->SetLineColor(kRed);*/
 
     // User-defined Hagedorn function fit.
-    original_hist->Fit(pT_fit,"NO R EX0 Q","",lower_pt_forFit,upper_pt_forFit);
-    original_hist->Fit(pT_fit,"NO R EX0 Q","",lower_pt_forFit,upper_pt_forFit);
-    TFitResultPtr fitResult = original_hist->Fit(pT_fit,"NO R EX0 M S","",lower_pt_forFit,upper_pt_forFit);
+    ROOT::Math::MinimizerOptions::SetDefaultMinimizer("Minuit2");
+    ROOT::Math::MinimizerOptions::SetDefaultMaxFunctionCalls(1000000); 
+    original_hist->Fit(pT_fit,"N R EX0 Q","",lower_pt_forFit,upper_pt_forFit);
+    original_hist->Fit(pT_fit,"N R EX0 Q","",lower_pt_forFit,upper_pt_forFit);
+    TFitResultPtr fitResult = original_hist->Fit(pT_fit,"N R EX0 M S","",lower_pt_forFit,upper_pt_forFit);
     double chi2 = fitResult->Chi2();
     int ndf = fitResult->Ndf();
     double pValue = TMath::Prob(chi2, ndf);
     std::cout<<"chi2 : "<<chi2<<"; ndf : "<<ndf<<"; pValue : "<<pValue<<std::endl;
-
-    // #############################################
-    // --------THE FIT SECTION ENDS HERE----------
-    // #############################################
 
 
     // Create the histogram fit_hist that will be filled with a random generator of tracks following the Hagedorn distribution defined by the fit.
@@ -442,10 +409,10 @@ void Hagedorn_extrapolation(TH1D* hist_pT, const std::string& filename, double E
             if(x >= 0.3 && x < 1.5) count+=1;
             fit_hist->Fill(x);
         }
+
     double scale_factor = original_hist_norm / SAMPLE;
     printf("\n\n-> Scale factor = %.3f \n\n", scale_factor);
     fit_hist->Scale(scale_factor);
-
     fit_hist_norm = fit_hist->Integral(bin_min, bin_max);
     printf("\n-> Hagedorn histogram complete. Final hagedorn histogram norm over [0.3, 1.5] GeV = %.3e \n", fit_hist_norm);
 
@@ -470,43 +437,6 @@ void Hagedorn_extrapolation(TH1D* hist_pT, const std::string& filename, double E
         }
     }
 
-    printf("\n-> Extrapolated histogram mean = %f \n", extrapolated_hist->GetMean());
-    printf("\n-> Original histogram mean = %f \n", original_hist->GetMean());
-extrapolated_hist->ResetStats();
-    printf("\n-> Extrapolated histogram mean = %f \n", extrapolated_hist->GetMean());
-
-/*printf("\n\n----------Histogram diagnosis-----------");
-printf("\nThe original_hist has %d bins \n", original_hist->GetNbinsX());
-printf("\nThe extrapolated_hist has %d bins \n", extrapolated_hist->GetNbinsX());
-
-printf("\n--- fit_hist: First three bins ---\n");
-printf("Bin\tLow edge\tHigh edge\tContent\t\tError\n");
-
-for (int i = 1; i <= 3; i++) {
-    double low_edge  = fit_hist->GetXaxis()->GetBinLowEdge(i);
-    double high_edge = fit_hist->GetXaxis()->GetBinUpEdge(i);
-    double content   = fit_hist->GetBinContent(i);
-    double error     = fit_hist->GetBinError(i);
-
-    printf("%2d\t%.3f\t\t%.3f\t\t%.3e ± %.1e\n",
-           i, low_edge, high_edge, content, error);
-}
-
-printf("\n--- Comparing original_hist and extrapolated_hist ---\n");
-printf("Bin\tLow edge\tHigh edge\tOriginal\tExtrapolated\n");
-
-int nbins = extrapolated_hist->GetNbinsX();
-for (int i = 1; i <= nbins; i++) {
-    double low_edge  = extrapolated_hist->GetXaxis()->GetBinLowEdge(i);
-    double high_edge = extrapolated_hist->GetXaxis()->GetBinUpEdge(i);
-    double orig_content = original_hist->GetBinContent(i);
-    double extr_content = extrapolated_hist->GetBinContent(i);
-
-    printf("%2d\t%.5f\t\t%.5f\t\t%.5e\t%.5e\n",
-           i, low_edge, high_edge, orig_content, extr_content);
-}
-printf("--- End of comparison ---\n\n");*/
-
     calculate_pT_vs_Nch(extrapolated_hist, filename, EHFmin, EHFmax);
 }
 
@@ -526,7 +456,6 @@ void printResults_to_datafile(){
 
     for(int i = 0; i < N_ch_values_5TeV.size(); i++){
         fout5 << N_ch_values_5TeV[i] << "  "
-              << N_ch_errors_5TeV[i] << "  "
               << mean_pT_data_5TeV[i] << "  "
               << mean_pT_errors_5TeV[i] << "\n";
     }
@@ -542,7 +471,6 @@ void printResults_to_datafile(){
     
     for(int i = 0; i < N_ch_values_8TeV.size(); i++){
         fout8 << N_ch_values_8TeV[i] << "  "
-              << N_ch_errors_8TeV[i] << "  "
               << mean_pT_data_8TeV[i] << "  "
               << mean_pT_errors_8TeV[i] << "\n";
     }
@@ -561,26 +489,23 @@ void calculate_pT_vs_Nch(TH1D* pt_hist, const std::string& filename, double EHFm
     double mean_pT_error = pt_hist->GetMeanError();
 
     // Sum number of tracks n_tracks as bin_contents.
-    double n_tracks_error = 0.0;
-    double n_tracks = pt_hist->IntegralAndError(1, pt_hist->GetNbinsX(), n_tracks_error);
+    double n_tracks = pt_hist->Integral();
 
     // Get n_events from QA_histograms respective centrality class and calculate N_ch.
     double n_events = get_n_events(filename, EHFmin, EHFmax);
     double N_ch = (n_tracks/n_events);
-    double N_ch_error = (n_tracks_error/n_events);
-
 
     if(filename == dataFile_5TeV.path){
         mean_pT_data_5TeV.push_back(mean_pT);
         mean_pT_errors_5TeV.push_back(mean_pT_error);
         N_ch_values_5TeV.push_back(N_ch);
-        N_ch_errors_5TeV.push_back(N_ch_error);
+        //N_ch_errors.push_back(0.0);
     }
     else if(filename == dataFile_8TeV.path){
         mean_pT_data_8TeV.push_back(mean_pT);
         mean_pT_errors_8TeV.push_back(mean_pT_error);
         N_ch_values_8TeV.push_back(N_ch);
-        N_ch_errors_8TeV.push_back(N_ch_error);
+        //N_ch_errors.push_back(0.0);
     }
 
     printf("--- Results --- \n");
@@ -588,7 +513,6 @@ void calculate_pT_vs_Nch(TH1D* pt_hist, const std::string& filename, double EHFm
     printf("-> <p_T> = %f \n", mean_pT);
     printf("-> <p_T> error = %f \n", mean_pT_error);
     printf("-> N_ch = %f \n", N_ch);
-    printf("-> N_ch error = %f \n", N_ch_error);
     printf("--------------- \n\n");
     printf("--------------- \n\n");
 
@@ -666,135 +590,22 @@ latex.DrawLatex(x, y, cmsText);
 
 TLatex latex2;
 latex2.SetNDC();
-latex2.SetTextSize(0.038);
+latex2.SetTextSize(0.035);
 latex2.SetTextFont(42);
-latex2.SetTextAlign(11);
+latex2.SetTextAlign(11);  // right-aligned
 latex2.DrawLatex(0.16, 0.84, "p_{T} > 0 GeV, |#eta| < 1.5");
 
 TLatex latex3;
 latex3.SetNDC();
-latex3.SetTextSize(0.038);
+latex3.SetTextSize(0.035);
 latex3.SetTextFont(42);
 latex3.SetTextAlign(31);
 latex3.DrawLatex(0.90, 0.84, "pPb (186.0 nb^{#minus1}) 8.16 TeV");
 
 TLatex latex4;
 latex4.SetNDC();
-latex4.SetTextSize(0.038);
+latex4.SetTextSize(0.035);
 latex4.SetTextFont(42);
 latex4.SetTextAlign(31);
 latex4.DrawLatex(0.90, 0.79, "pPb (0.509 nb^{#minus1}) 5.02 TeV");
-}
-
-void plot_fig_2(){
-
-    std::vector<double> T_eff_5TeV;
-    std::vector<double> T_eff_8TeV;
-    std::vector<double> T_eff;
-    for (double x : mean_pT_data_5TeV) T_eff_5TeV.push_back(x*1000./3.);
-    for (double x : mean_pT_data_8TeV) T_eff_8TeV.push_back(x*1000./3.);
-
-    for(int j = 0; j < n_centralities; ++j){
-        T_eff.push_back((T_eff_5TeV[j] + T_eff_8TeV[j])/2.0);
-    }
-
-    std::vector<double> T_eff_syst_errors;
-    std::vector<double> cs_syst_errors;
-
-    double rel_err_Teff = 0.046; // 4.6%
-    double rel_err_cs   = 0.11;  // 11%
-
-    for (size_t i = 0; i < T_eff.size(); ++i) {
-        T_eff_syst_errors.push_back(T_eff[i] * rel_err_Teff);
-        cs_syst_errors.push_back(cs_results[i] * rel_err_cs);
-    }
-
-    TCanvas *c = new TCanvas();
-    c->SetLeftMargin(0.12);
-    c->SetRightMargin(0.035);
-    c->SetBottomMargin(0.12);
-    c->SetTopMargin(0.08);
-
-    // Grid & ticks
-    c->SetTickx(1);     // ticks on top x-axis
-    c->SetTicky(1);     // ticks on right y-axis
-
-    // Background
-    c->SetFillColor(0);   // white/transparent
-    c->SetFrameFillColor(0);
-
-    // Thicker border/frame
-    c->SetFrameLineWidth(2);
-
-    TGraphErrors *fig2 = new TGraphErrors(T_eff.size(), T_eff.data(), cs_results.data(), T_eff_syst_errors.data(), cs_syst_errors.data());
-
-    fig2->SetMarkerStyle(20);
-    fig2->SetMarkerSize(1.0);
-    fig2->SetMarkerColor(kBlack);
-    fig2->SetLineColor(kBlack);
-    fig2->GetXaxis()->SetLimits(130, 380);
-    fig2->GetYaxis()->SetRangeUser(0., 0.4);
-
-    fig2->SetTitle("");
-    fig2->GetXaxis()->CenterTitle(true);
-    fig2->GetYaxis()->CenterTitle(true);
-    fig2->GetXaxis()->SetTitleOffset(1.0);
-    fig2->GetYaxis()->SetTitleOffset(1.1);
-    fig2->GetXaxis()->SetTitleFont(42);
-    fig2->GetYaxis()->SetTitleFont(42);
-    fig2->GetXaxis()->SetLabelFont(42);
-    fig2->GetYaxis()->SetLabelFont(42);
-    fig2->GetXaxis()->SetTitleSize(0.05);
-    fig2->GetYaxis()->SetTitleSize(0.044);
-    fig2->GetXaxis()->SetLabelSize(0.036);
-    fig2->GetYaxis()->SetLabelSize(0.036);
-
-    fig2->GetXaxis()->SetTitle("T_{eff} = #LTp_{T}#GT / 3 [MeV]");
-    fig2->GetYaxis()->SetTitle("dln #LTp_{T}#GT / dln N_{ch}");
-    fig2->Draw("APE");
-
-    auto leg = new TLegend(0.68,0.34,0.88,0.42);
-    leg->AddEntry(fig2,"Data","lep");
-    leg->SetBorderSize(0);
-    leg->SetFillStyle(0);
-    leg->SetTextSize(0.045);
-    leg->SetTextFont(42);
-    leg->SetMargin(0.2);
-    leg->SetEntrySeparation(0.04);
-    leg->Draw();
-
-
-TLatex latex;
-latex.SetNDC();              // use normalized coordinates
-latex.SetTextSize(0.04);     // text size
-latex.SetTextFont(42);       // Helvetica-like
-latex.SetTextAlign(11);      // left-aligned, top
-
-TString cmsText = "#bf{CMS} Work in Progress";
-latex.DrawLatex(0.12, 0.93, cmsText);
-
-TLatex latex2;
-latex2.SetNDC();
-latex2.SetTextSize(0.05);
-latex2.SetTextFont(42);
-latex2.SetTextAlign(11);
-latex2.DrawLatex(0.16, 0.20, "p_{T} > 0 GeV, |#eta| < 1.5");
-
-TLatex latex3;
-latex3.SetNDC();
-latex3.SetTextSize(0.05);
-latex3.SetTextFont(42);
-latex3.SetTextAlign(11);
-latex3.DrawLatex(0.16, 0.84, "pPb (186.0 nb^{#minus1}) 8.16 TeV");
-
-TLatex latex4;
-latex4.SetNDC();
-latex4.SetTextSize(0.05);
-latex4.SetTextFont(42);
-latex4.SetTextAlign(11);
-latex4.DrawLatex(0.16, 0.79, "pPb (0.509 nb^{#minus1}) 5.02 TeV");
-
-    c->Modified();
-    c->Update();
-    c->SaveAs("../../../../mnt/c/Users/lucas/Documents/fig2.pdf");
 }
