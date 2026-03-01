@@ -87,10 +87,11 @@ const DataStruct dataFile_8TeV = {
 TH1D* get_pt_histogram(const DataStruct& dataFile, double low_eta = -1.5, double high_eta = 1.5);
 void draw_CMS_Header(TString latex_text = "#bf{CMS} #it{Work in Progress}", double x = 0.12, double y = 0.93, double text_size = 0.04, int align = 11);
 void general_settings(TH1D* hist = nullptr, Color_t color = kBlack);
+void ZeroBinsAbove(TH1* h, double xmax);
 
 
 // --- main() ---
-void kinCuts_Eta(){
+void check_eta_cuts(){
 
     gROOT->SetBatch(kTRUE); // This tells ROOT to run in batch mode, i.e. no GUI or pop-ups.
 
@@ -107,7 +108,7 @@ void kinCuts_Eta(){
 	hist_4 = get_pt_histogram(dataFile_8TeV, -2.0, 2.0);
 	hist_5 = get_pt_histogram(dataFile_8TeV, -2.4, 2.4);
 
-    TCanvas *c = new TCanvas("c", "kinematic eta cuts", 800, 600);
+    TCanvas *c = new TCanvas("c", "kinematic eta cuts", 900, 700);
     gStyle->SetOptStat(0);
     c->SetLeftMargin(0.1);
     c->SetRightMargin(0.035);
@@ -122,6 +123,12 @@ void kinCuts_Eta(){
     general_settings(hist_3, kRed);
     general_settings(hist_2, kGreen + 2);
     general_settings(hist_1, kMagenta + 1);
+
+    ZeroBinsAbove(hist_5, 2.9);
+    ZeroBinsAbove(hist_4, 2.9);
+    ZeroBinsAbove(hist_3, 2.9);
+    ZeroBinsAbove(hist_2, 2.9);
+    ZeroBinsAbove(hist_1, 2.9);
 
     // first draw settings.
     hist_5->SetTitle("");
@@ -139,6 +146,7 @@ void kinCuts_Eta(){
     hist_5->GetYaxis()->SetLabelSize(0.036);
 
     // Draw on canvas c
+    hist_5->GetXaxis()->SetRangeUser(0., 3.);
     hist_5->GetXaxis()->SetTitle("p_{T} [GeV]");
     hist_5->GetYaxis()->SetTitle("N of tracks");
     hist_5->Draw("E1");
@@ -163,7 +171,6 @@ void kinCuts_Eta(){
 
     draw_CMS_Header();
     draw_CMS_Header("pPb (186.0 nb^{#minus1}) 8.16 TeV", 0.93, 0.93, 0.038, 31);
-    //draw_CMS_Header("pPb (0.509 nb^{#minus1}) 5.02 TeV", 0.93, 0.93, 0.038, 31);
 
     c->SetLogy();
     c->Update();
@@ -201,6 +208,18 @@ TH1D* get_pt_histogram(const DataStruct& dataFile, double low_eta, double high_e
     hist_HFSumPb_vs_pt_eta->SetDirectory(0);
     file->Close();
     std::cout << "\n\nRunning on " << dataFile.label << " dataset." << " Centrality class: [" << EHFmin << "," << EHFmax << "]GeV " << std::endl; 
+
+    int nBinsZ = hist_HFSumPb_vs_pt_eta->GetNbinsZ();
+
+    std::cout << "\nZ-axis binning (" << nBinsZ << " bins total):\n";
+
+    for (int i = 1; i <= nBinsZ; ++i) {
+        double _lowEdge  = hist_HFSumPb_vs_pt_eta->GetZaxis()->GetBinLowEdge(i);
+        double _highEdge = hist_HFSumPb_vs_pt_eta->GetZaxis()->GetBinUpEdge(i);
+        double center   = hist_HFSumPb_vs_pt_eta->GetZaxis()->GetBinCenter(i);
+
+        printf("Bin %3d: [%.3f, %.3f]  (center = %.3f)\n", i, _lowEdge, _highEdge, center);
+    }
 
     // Setting pseudorapidity window [low_eta, high_eta].
     int z_min = hist_HFSumPb_vs_pt_eta->GetZaxis()->FindBin(low_eta + delta);
@@ -270,8 +289,19 @@ void general_settings(TH1D* hist, Color_t color){
     // Style histogram general settings.
     hist->SetMarkerStyle(21);
     hist->SetMarkerColor(color);
-    hist->SetMarkerSize(0.8);
+    hist->SetMarkerSize(0.9);
     hist->SetLineColor(color);
     hist->SetLineWidth(2);
     hist->SetTitle("");
+}
+
+void ZeroBinsAbove(TH1* h, double xmax) {
+    int nbins = h->GetNbinsX();
+    for (int i = 1; i <= nbins; ++i) {
+        double x = h->GetBinCenter(i);
+        if (x > xmax) {
+            h->SetBinContent(i, 0);
+            h->SetBinError(i, 0);
+        }
+    }
 }

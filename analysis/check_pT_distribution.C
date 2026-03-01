@@ -125,7 +125,7 @@ void plot_pT_myData(){
     // --------THE FIT SECTION ENDS HERE----------
     // #############################################
 
-/*    // Get norm only on the target range: 0.3 to 1.5 GeV.
+    // Get norm only on the target range: 0.3 to 1.5 GeV.
     int Bin_min = hist_pT->GetXaxis()->FindBin(lower_pt_forFit + delta);
     int Bin_max = hist_pT->GetXaxis()->FindBin(upper_pt_forFit - delta);
     double hist_pT_norm = hist_pT->Integral(Bin_min, Bin_max); // Integral over [0.3,1.5].
@@ -154,7 +154,7 @@ TH1D *fit_hist_first3 = (TH1D*)fit_hist->Clone("fit_hist_first3");
 for (int i = n_bins_to_keep + 1; i <= fit_hist_first3->GetNbinsX(); ++i) {
     fit_hist_first3->SetBinContent(i, 0);
     fit_hist_first3->SetBinError(i, 0);
-}*/
+}
 
 // --------DRAWING SECTION------
 
@@ -175,16 +175,16 @@ hist_pT->SetMarkerColor(kBlack);
 hist_pT->SetLineColor(kBlack);
 hist_pT->SetStats(0);
 
-/*fit_hist_first3->SetMarkerStyle(20);
+fit_hist_first3->SetMarkerStyle(20);
 fit_hist_first3->SetMarkerSize(0.8);
 fit_hist_first3->SetMarkerColor(kGreen + 1);
 fit_hist_first3->SetLineColor(kGreen + 1);
-fit_hist_first3->SetStats(0);*/
+fit_hist_first3->SetStats(0);
 
 pT_fit->SetLineColor(kRed);
 pT_fit->SetLineWidth(2);
-//pT_fit->SetLineStyle(8); // dashed line
-pT_fit->SetLineStyle(1); // dashed line
+pT_fit->SetLineStyle(8); // dashed line
+//pT_fit->SetLineStyle(1); // dashed line
 pT_fit->SetTitle("");
 
 pT_fit->GetXaxis()->CenterTitle(true);
@@ -217,17 +217,17 @@ cesar_fit->SetLineStyle(2); // solid line
 
 pT_fit->Draw();     // Your fitted function
 hist_pT->Draw("E1 SAME");      // Draw histogram with error bars
-cesar_fit->Draw("SAME");   // Cesar’s TF1
-cesar_hist->Draw("E1 SAME");      // Draw histogram with error bars
-//fit_hist_first3->Draw("E1 SAME");
+//cesar_fit->Draw("SAME");   // Cesar’s TF1
+//cesar_hist->Draw("E1 SAME");      // Draw histogram with error bars
+fit_hist_first3->Draw("E1 SAME");
 
 // --- Add legend ---
 TLegend *leg = new TLegend(0.65, 0.65, 0.93, 0.81);
 leg->AddEntry(hist_pT, "CMS data", "lep");
-//leg->AddEntry(fit_hist_first3, "p_{T} > 0", "lep");
+leg->AddEntry(fit_hist_first3, "p_{T} < 0.3", "lep");
 leg->AddEntry(pT_fit, "Fit", "l");
-leg->AddEntry(cesar_hist, "Cesar data", "lep");
-leg->AddEntry(cesar_fit, "Cesar Fit", "l");
+//leg->AddEntry(cesar_hist, "Cesar data", "lep");
+//leg->AddEntry(cesar_fit, "Cesar Fit", "l");
 leg->SetBorderSize(0);
 leg->SetTextSize(0.035);
 leg->Draw();
@@ -239,7 +239,14 @@ latex.SetTextFont(42);       // Helvetica-like
 latex.SetTextAlign(11);      // left-aligned, top
 
 TString cmsText = "#bf{CMS} #it{Work in Progress}";
-latex.DrawLatex(0.20, 0.93, cmsText);
+latex.DrawLatex(0.19, 0.93, cmsText);
+
+TLatex latex2;
+latex2.SetNDC();
+latex2.SetTextSize(0.038);
+latex2.SetTextFont(42);
+latex2.SetTextAlign(11);
+latex2.DrawLatex(0.66, 0.58, "|#eta| < 1.5, 0-1%");
 
 TLatex latex3;
 latex3.SetNDC();
@@ -251,11 +258,11 @@ latex3.DrawLatex(0.92, 0.93, "pPb (186.0 nb^{#minus1}) 8.16 TeV");
 
 //c->SaveAs("../../../../mnt/c/Users/lucas/Documents/myFull_fit_comparison.pdf");
 //c->SaveAs("../../../../mnt/c/Users/lucas/Documents/observed_plus_fit_plus_extrap_5TeV.pdf");
-//c->SaveAs("../../../../mnt/c/Users/lucas/Documents/observed_plus_fit_plus_extrap_8TeV.pdf");
+c->SaveAs("../../../../mnt/c/Users/lucas/Documents/observed_plus_fit_plus_extrap_8TeV.pdf");
 //c->SaveAs("../../../../mnt/c/Users/lucas/Documents/my_5TeV_6_29_fit_comparison.pdf");
 //c->SaveAs("../../../../mnt/c/Users/lucas/Documents/my_30_88_fit_comparison.pdf");
 //c->SaveAs("../../../../mnt/c/Users/lucas/Documents/my_89_500_fit_comparison_5TeV.pdf");
-c->SaveAs("../../../../mnt/c/Users/lucas/Documents/my_89_500_fit_comparison_8TeV.pdf");
+//c->SaveAs("../../../../mnt/c/Users/lucas/Documents/my_89_500_fit_comparison_8TeV.pdf");
 
     /*// --- Style settings ---
     hist_pT->SetTitle("6_29 centrality class");

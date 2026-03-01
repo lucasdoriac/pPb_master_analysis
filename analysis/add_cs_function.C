@@ -137,6 +137,8 @@ void add_cs_function(){
     TStopwatch timer;
     timer.Start();
 
+    gRandom->SetSeed(12345 + 2);
+
     for(int i = 0; i < n_centralities; ++i){
 
     auto [low5, high5] = arr_5[i];
@@ -265,6 +267,99 @@ void plot_pT_vs_Nch(){
         cs_results.push_back(cs_fit->GetParameter(1));
         cs_errors.push_back(cs_fit->GetParError(1));
     }
+
+    // Get Hijing results.
+    TFile *hijing_file = TFile::Open("../../cs2_MC-MB-HIJING_HF4eta5_trks1p0_Fit0p0-2p0_BoostInvariant.root", "READ");
+
+    TGraphErrors *hijing_pair_80 = (TGraphErrors*) hijing_file->Get("tg_0;1");
+    TGraphErrors *hijing_pair_30 = (TGraphErrors*) hijing_file->Get("tg_1;1");
+    TGraphErrors *hijing_pair_1 = (TGraphErrors*) hijing_file->Get("tg_2;1");
+
+    double x[2], y[2], ex[2], ey[2];
+    hijing_pair_80->GetPoint(0, x[0], y[0]);
+    hijing_pair_80->GetPoint(1, x[1], y[1]);
+
+    ex[0] = hijing_pair_80->GetErrorX(0);
+    ey[0] = hijing_pair_80->GetErrorY(0);
+    ex[1] = hijing_pair_80->GetErrorX(1);
+    ey[1] = hijing_pair_80->GetErrorY(1);
+
+    TGraphErrors *hijing_80_EA = new TGraphErrors(1, &x[0], &y[0], &ex[0], &ey[0]);
+    TGraphErrors *hijing_80_EB = new TGraphErrors(1, &x[1], &y[1], &ex[1], &ey[1]);
+
+    double x_1[2], y_1[2], ex_1[2], ey_1[2];
+    hijing_pair_30->GetPoint(0, x_1[0], y_1[0]);
+    hijing_pair_30->GetPoint(1, x_1[1], y_1[1]);
+
+    ex_1[0] = hijing_pair_30->GetErrorX(0);
+    ey_1[0] = hijing_pair_30->GetErrorY(0);
+    ex_1[1] = hijing_pair_30->GetErrorX(1);
+    ey_1[1] = hijing_pair_30->GetErrorY(1);
+
+    TGraphErrors *hijing_30_EA = new TGraphErrors(1, &x_1[0], &y_1[0], &ex_1[0], &ey_1[0]);
+    TGraphErrors *hijing_30_EB = new TGraphErrors(1, &x_1[1], &y_1[1], &ex_1[1], &ey_1[1]);
+
+    double x_2[2], y_2[2], ex_2[2], ey_2[2];
+    hijing_pair_1->GetPoint(0, x_2[0], y_2[0]);
+    hijing_pair_1->GetPoint(1, x_2[1], y_2[1]);
+
+    ex_2[0] = hijing_pair_1->GetErrorX(0);
+    ey_2[0] = hijing_pair_1->GetErrorY(0);
+    ex_2[1] = hijing_pair_1->GetErrorX(1);
+    ey_2[1] = hijing_pair_1->GetErrorY(1);
+
+    TGraphErrors *hijing_1_EA = new TGraphErrors(1, &x_2[0], &y_2[0], &ex_2[0], &ey_2[0]);
+    TGraphErrors *hijing_1_EB = new TGraphErrors(1, &x_2[1], &y_2[1], &ex_2[1], &ey_2[1]);
+
+// ---------- HIJING Energy A (8.16 TeV) ----------
+for (auto g : {hijing_80_EA, hijing_30_EA, hijing_1_EA}) {
+    g->SetMarkerStyle(25);
+    g->SetMarkerSize(1.2);
+    g->SetMarkerColor(kGreen+2);
+    g->SetLineColor(kGreen+2);
+}
+
+// ---------- HIJING Energy B (5.02 TeV) ----------
+for (auto g : {hijing_80_EB, hijing_30_EB, hijing_1_EB}) {
+    g->SetMarkerStyle(25);
+    g->SetMarkerSize(1.2);
+    g->SetMarkerColor(kBlue+1);
+    g->SetLineColor(kBlue+1);
+}
+
+hijing_80_EA->Draw("PE SAME");
+hijing_80_EB->Draw("PE SAME");
+hijing_30_EA->Draw("PE SAME");
+hijing_30_EB->Draw("PE SAME");
+hijing_1_EA->Draw("PE SAME");
+hijing_1_EB->Draw("PE SAME");
+
+    TGraph *hijing_fit_80 = (TGraph*) hijing_file->Get("cs2fit_0;1");
+    TGraph *hijing_fit_30 = (TGraph*) hijing_file->Get("cs2fit_1;1");
+    TGraph *hijing_fit_1 = (TGraph*) hijing_file->Get("cs2fit_2;1");
+    hijing_file->Close();
+
+hijing_fit_80->SetLineColor(kBlack);
+hijing_fit_80->SetLineWidth(3);
+
+hijing_fit_30->SetLineColor(kBlack);
+hijing_fit_30->SetLineWidth(3);
+
+hijing_fit_1->SetLineColor(kBlack);
+hijing_fit_1->SetLineWidth(3);
+
+hijing_fit_80->Draw("L SAME");
+hijing_fit_30->Draw("L SAME");
+hijing_fit_1->Draw("L SAME");
+
+TLegend *leg2 = new TLegend(0.56, 0.26, 0.86, 0.48);
+leg2->SetHeader("HIJING"); // theres a flag "C" that centers the text.
+leg2->SetBorderSize(0);
+leg2->SetFillStyle(0);
+leg2->AddEntry(hijing_80_EA, "8.16 TeV", "p");
+leg2->AddEntry(hijing_80_EB, "5.02 TeV", "p");
+leg2->AddEntry(hijing_fit_80,  "Fit",  "l");
+leg2->Draw();
 
     // Legend settings
     leg->SetHeader("Data"); // theres a flag "C" that centers the text.
@@ -436,6 +531,7 @@ void Hagedorn_extrapolation(TH1D* hist_pT, const std::string& filename, double E
 
     int count = 0;
     double fit_hist_norm = 0.0;
+    std::cout << "Seed = " << gRandom->GetSeed() << std::endl;
     printf("\n\n-> Random generation of tracks with Hagedorn PDF. Sample size = %.1e \n", static_cast<double>(SAMPLE));
         while(count < SAMPLE){
             double x = pT_fit->GetRandom();
@@ -726,14 +822,16 @@ void plot_fig_2(){
     // Thicker border/frame
     c->SetFrameLineWidth(2);
 
-    TGraphErrors *fig2 = new TGraphErrors(T_eff.size(), T_eff.data(), cs_results.data(), T_eff_syst_errors.data(), cs_syst_errors.data());
+//    TGraphErrors *fig2 = new TGraphErrors(T_eff.size(), T_eff.data(), cs_results.data(), T_eff_syst_errors.data(), cs_syst_errors.data());
+    TGraphErrors *fig2 = new TGraphErrors(T_eff.size(), T_eff.data(), cs_results.data(), nullptr, nullptr);
 
     fig2->SetMarkerStyle(20);
     fig2->SetMarkerSize(1.0);
-    fig2->SetMarkerColor(kBlack);
-    fig2->SetLineColor(kBlack);
-    fig2->GetXaxis()->SetLimits(130, 380);
-    fig2->GetYaxis()->SetRangeUser(0., 0.4);
+    fig2->SetMarkerColor(kRed);
+    fig2->SetLineColor(kRed);
+    fig2->SetLineWidth(0);
+    fig2->GetXaxis()->SetLimits(130, 320);
+    fig2->GetYaxis()->SetRangeUser(0.08, 0.4);
 
     fig2->SetTitle("");
     fig2->GetXaxis()->CenterTitle(true);
@@ -749,12 +847,49 @@ void plot_fig_2(){
     fig2->GetXaxis()->SetLabelSize(0.036);
     fig2->GetYaxis()->SetLabelSize(0.036);
 
-    fig2->GetXaxis()->SetTitle("T_{eff} = #LTp_{T}#GT / 3 [MeV]");
-    fig2->GetYaxis()->SetTitle("dln #LTp_{T}#GT / dln N_{ch}");
-    fig2->Draw("APE");
+    // Get Hijing and Trajectum results.
+    TFile *trajectum_file = TFile::Open("../../cs2_Trajectum_FCALCent_eta1_2.root", "READ");
+    TFile *hijing_file = TFile::Open("../../cs2_MC-MB-HIJING_HF4eta5_trks1p0_Fit0p0-2p0_BoostInvariant.root", "READ");
 
-    auto leg = new TLegend(0.68,0.34,0.88,0.42);
+    TGraphAsymmErrors *gr_cslattice = new TGraphAsymmErrors("cs2latticeQCD.dat","%lg %lg %lg %lg","");
+    gr_cslattice->SetFillColorAlpha(kGray+1,0.3);
+    gr_cslattice->SetLineWidth(3);
+    gr_cslattice->SetLineColor(kGray+1);
+
+    TGraphErrors *trajectum_graph = (TGraphErrors*) trajectum_file->Get("Graph;1");
+    TGraphErrors *hijing_graph = (TGraphErrors*) hijing_file->Get("Graph;2");
+    trajectum_file->Close();
+    hijing_file->Close();
+
+    trajectum_graph->SetMarkerStyle(25);
+    trajectum_graph->SetMarkerSize(1.0);
+    trajectum_graph->SetMarkerColor(kGreen + 2);
+    trajectum_graph->SetLineColor(kGreen + 2);
+    trajectum_graph->SetLineWidth(3);
+    trajectum_graph->SetTitle("");
+
+    hijing_graph->SetMarkerStyle(25);
+    hijing_graph->SetMarkerSize(1.0);
+    hijing_graph->SetMarkerColor(kMagenta);
+    hijing_graph->SetLineColor(kMagenta);
+    hijing_graph->SetLineWidth(3);
+    hijing_graph->SetTitle("");
+
+    //fig2->GetXaxis()->SetTitle("T_{eff} = #LTp_{T}#GT / 3 [MeV]");
+    fig2->GetXaxis()->SetTitle("T_{eff} [MeV]"); // Usado apenas para a nota de imprensa.
+    //fig2->GetYaxis()->SetTitle("c_{s}^{2} = dln #LTp_{T}#GT / dln N_{ch}");
+    fig2->GetYaxis()->SetTitle("c_{s}^{2}"); // Usado apenas para a nota de imprensa.
+    fig2->Draw("APE");
+    //line->Draw("SAME");
+    trajectum_graph->Draw("PE SAME");
+    hijing_graph->Draw("PE SAME");
+    gr_cslattice->Draw("LE3 SAME");
+
+    auto leg = new TLegend(0.60,0.68,0.81,0.85);
     leg->AddEntry(fig2,"Data","lep");
+    leg->AddEntry(gr_cslattice, "c_{s}^{2}(T) Lattice QCD","lep");
+    leg->AddEntry(trajectum_graph,"pPb Trajectum","lep");
+    leg->AddEntry(hijing_graph,"pPb Hijing","lep");
     leg->SetBorderSize(0);
     leg->SetFillStyle(0);
     leg->SetTextSize(0.045);
@@ -770,31 +905,31 @@ latex.SetTextSize(0.04);     // text size
 latex.SetTextFont(42);       // Helvetica-like
 latex.SetTextAlign(11);      // left-aligned, top
 
-TString cmsText = "#bf{CMS} Work in Progress";
+TString cmsText = "#bf{CMS} #it{Work in Progress}";
 latex.DrawLatex(0.12, 0.93, cmsText);
 
 TLatex latex2;
 latex2.SetNDC();
-latex2.SetTextSize(0.05);
+latex2.SetTextSize(0.042);
 latex2.SetTextFont(42);
 latex2.SetTextAlign(11);
-latex2.DrawLatex(0.16, 0.20, "p_{T} > 0 GeV, |#eta| < 1.5");
+latex2.DrawLatex(0.16, 0.74, "p_{T} > 0 GeV, |#eta| < 1.5");
 
 TLatex latex3;
 latex3.SetNDC();
-latex3.SetTextSize(0.05);
+latex3.SetTextSize(0.042);
 latex3.SetTextFont(42);
 latex3.SetTextAlign(11);
 latex3.DrawLatex(0.16, 0.84, "pPb (186.0 nb^{#minus1}) 8.16 TeV");
 
 TLatex latex4;
 latex4.SetNDC();
-latex4.SetTextSize(0.05);
+latex4.SetTextSize(0.042);
 latex4.SetTextFont(42);
 latex4.SetTextAlign(11);
 latex4.DrawLatex(0.16, 0.79, "pPb (0.509 nb^{#minus1}) 5.02 TeV");
 
     c->Modified();
     c->Update();
-    c->SaveAs("../../../../mnt/c/Users/lucas/Documents/fig2.pdf");
+    c->SaveAs("../../../../mnt/c/Users/lucas/Documents/cs2_results.pdf");
 }

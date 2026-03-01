@@ -44,7 +44,7 @@ X-axis range is set AFTER normalization of the histogram relative to all the dat
 int GetLastNonZeroBin(const TH1D *hist);
 double GetLastNonZeroX(const TH1D *hist);
 void style_histogram(const char* target_histogram, TH1D *h1, Color_t color_h1, TH1D *h2, Color_t color_h2, bool set_x_range = false, int sparse_axis = 0);
-TLegend* makeLegend(TH1D *h1, const char *label1, TH1D *h2, const char *label2, double x1 = 0.75, double y1 = 0.7, double x2 = 0.95, double y2 = 0.82); 
+TLegend* makeLegend(TH1D *h1, const char *label1, TH1D *h2, const char *label2, double x1 = 0.83, double y1 = 0.72, double x2 = 1., double y2 = 0.85); 
 TCanvas* makeCanvas(const char *name = "c", const char *title = "Canvas", bool logy = false, int width = 1280, int height = 720);
 TString return_Xaxis_title(const char* variable, int sparse_axis = 0);
 void drawCMSHeader(const char* extraText = "#it{Work in Progress}", const char* lumiText  = "pPb (186.0 nb^{#minus1}) 8.16 TeV, (0.509 nb^{#minus1}) 5.02 TeV", double x = 0.11, double y = 0.94);
@@ -57,8 +57,8 @@ void control_plots(const char* target_histogram, bool log_y = false, bool set_x_
 
 	bool found = false; // Boolean to check if target_histogram was found.
 
-	TFile *f1 = TFile::Open("../../pPb_meanpT_vs_Nch_histos_8TeV_MBonly_PUGPlus_HFSumEtEta4_TrkEta2p4_v12-09-01-25_tot.root", "READ");
-	TFile *f2 = TFile::Open("../../pPb_meanpT_vs_Nch_histos_5TeV_MBonly_PUGPlus_HFSumEtEta4_TrkEta2p4_v12-09-01-25_tot.root", "READ");
+	TFile *f1 = TFile::Open("../../pPb_meanpT_vs_Nch_histos_8TeV_MBonly_PUGPlus_HFSumEtEta4_TrkEta2p4_v13-10-02-25_tot.root", "READ");
+	TFile *f2 = TFile::Open("../../pPb_meanpT_vs_Nch_histos_5TeV_MBonly_PUGPlus_HFSumEtEta4_TrkEta2p4_v13-10-02-25_tot.root", "READ");
 	if (!f1 || f1->IsZombie() || !f2 || f2->IsZombie()) {
     	    std::cerr << "Error while opening files. \n" << std::endl;
     	    exit(1);
@@ -248,14 +248,16 @@ void style_histogram(const char* target_histogram, TH1D *h1, Color_t color_h1, T
     double int2 = h2->Integral(0, h2->GetNbinsX() + 1);
 	if (int2 > 0) h2->Scale(1.0 / int2);
 
-	// Adjusting X-axis plotting range.
+/*	// Adjusting X-axis plotting range.
 	if(set_x_range){
 		int lastBin = GetLastNonZeroBin(h1);
 		double xmax = GetLastNonZeroX(h1);
 		double xmin = h1->GetXaxis()->GetXmin();
 		if( strcmp(target_histogram, "ptresolution") == 0 ) h1->GetXaxis()->SetRangeUser(xmin, xmax + 0.01);
 		else h1->GetXaxis()->SetRangeUser(xmin, xmax + 5.0);
-	}
+	}*/
+	h1->GetXaxis()->SetRangeUser(-3.14, +3.14);
+	h1->GetYaxis()->SetRangeUser(0., 0.1);
 }
 
 // Legend settings function.
@@ -335,7 +337,7 @@ TString return_Xaxis_title(const char* variable, int sparse_axis = 0) {
     if (var == "hfSumEtPb" || var == "hfSumEtp")
         return "E_{T,sum}^{HF} [GeV]";
     else if (var == "vzhist")
-        return "#it{z} coordinate of primary vertex [cm]";
+        return "#it{v_{z}} [cm]";
     else if (var == "dxyoversigmadxy")
         return "dxy/#sigma_{dxy}";
     else if (var == "dzoversigmadz")
@@ -345,7 +347,7 @@ TString return_Xaxis_title(const char* variable, int sparse_axis = 0) {
     else if (var == "hist_reco_trk_corr") {
         if (sparse_axis == 0) return "p_{T} [GeV]";
         if (sparse_axis == 1) return "#eta";
-        if (sparse_axis == 2) return "#phi";
+        if (sparse_axis == 2) return "#phi [rad]";
         if (sparse_axis == 3) return "Charge [e]";
     }
 
